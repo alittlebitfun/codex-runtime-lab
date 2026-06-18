@@ -1,0 +1,1859 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Codex Lab</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+:root {
+  --bg-deep: #09090b;
+  --bg-panel: #111113;
+  --bg-card: #18181b;
+  --bg-hover: #1f1f23;
+  --bg-input: #0c0c0e;
+  --border: #27272a;
+  --border-accent: #3f3f46;
+  --text: #fafafa;
+  --text-secondary: #a1a1aa;
+  --text-muted: #71717a;
+  --accent: #3b82f6;
+  --accent-hover: #2563eb;
+  --green: #22c55e;
+  --green-dim: #166534;
+  --yellow: #eab308;
+  --yellow-dim: #854d0e;
+  --red: #ef4444;
+  --red-dim: #991b1b;
+  --purple: #a855f7;
+  --cyan: #06b6d4;
+  --code-bg: #0d0d10;
+  --shadow: 0 1px 3px rgba(0,0,0,0.4);
+  --radius: 10px;
+  --radius-sm: 6px;
+  --radius-lg: 14px;
+  --font: 'Inter', -apple-system, 'PingFang SC', 'Segoe UI', sans-serif;
+  --mono: 'JetBrains Mono', 'Cascadia Code', 'Fira Code', monospace;
+  --sidebar-w: 280px;
+  --right-w: 420px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body, #root { height: 100%; width: 100%; overflow: hidden; }
+body { font-family: var(--font); color: var(--text); background: var(--bg-deep); }
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #555; }
+input, textarea, button { font-family: inherit; }
+
+/* ====== AUTH ====== */
+.auth-page { display: flex; align-items: center; justify-content: center; height: 100vh; background: var(--bg-deep); }
+.auth-card { background: var(--bg-panel); border: 1px solid var(--border); border-radius: 16px; padding: 40px; width: 400px; max-width: 92vw; }
+.auth-card h1 { font-size: 22px; font-weight: 700; margin-bottom: 6px; text-align: center; }
+.auth-card .subtitle { font-size: 13px; color: var(--text-muted); text-align: center; margin-bottom: 28px; }
+.auth-field { margin-bottom: 16px; }
+.auth-field label { display: block; font-size: 12px; font-weight: 600; color: var(--text-secondary); margin-bottom: 6px; }
+.auth-field input { width: 100%; padding: 10px 14px; background: var(--bg-input); border: 1px solid var(--border); border-radius: var(--radius); color: var(--text); font-size: 14px; outline: none; transition: border-color 0.15s; }
+.auth-field input:focus { border-color: var(--accent); }
+.auth-btn { width: 100%; padding: 12px; background: var(--accent); color: white; border: none; border-radius: var(--radius); font-size: 15px; font-weight: 600; cursor: pointer; transition: background 0.15s; margin-top: 8px; }
+.auth-btn:hover { background: var(--accent-hover); }
+.auth-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.auth-toggle { text-align: center; margin-top: 20px; font-size: 13px; color: var(--text-muted); }
+.auth-toggle a { color: var(--accent); cursor: pointer; text-decoration: none; }
+.auth-toggle a:hover { text-decoration: underline; }
+.auth-error { background: var(--red-dim); color: var(--red); padding: 8px 12px; border-radius: var(--radius-sm); font-size: 13px; margin-bottom: 16px; }
+
+/* ====== APP LAYOUT ====== */
+.app-layout { display: flex; height: 100vh; }
+.sidebar { width: var(--sidebar-w); min-width: 200px; max-width: 450px; background: var(--bg-panel); border-right: 1px solid var(--border); display: flex; flex-direction: column; flex-shrink: 0; }
+.main-area { flex: 1; display: flex; min-width: 0; }
+.chat-panel { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+.right-panel { width: var(--right-w); min-width: 240px; max-width: 700px; background: var(--bg-panel); border-left: 1px solid var(--border); display: flex; flex-direction: column; flex-shrink: 0; }
+
+/* ====== RESIZE HANDLES ====== */
+.resize-handle { width: 5px; cursor: col-resize; background: transparent; transition: background 0.15s; flex-shrink: 0; position: relative; z-index: 10; }
+.resize-handle:hover, .resize-handle.active { background: var(--accent); }
+.resize-handle::after { content: ''; position: absolute; top: 0; bottom: 0; left: -3px; right: -3px; }
+
+/* ====== SIDEBAR ====== */
+.sidebar-header { padding: 16px; border-bottom: 1px solid var(--border); }
+.sidebar-logo { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+.sidebar-logo svg { width: 28px; height: 28px; }
+.sidebar-logo h1 { font-size: 16px; font-weight: 700; letter-spacing: -0.3px; }
+.sidebar-logo span { font-size: 11px; color: var(--text-muted); background: var(--bg-card); padding: 2px 8px; border-radius: 20px; }
+.new-session-btn { width: 100%; padding: 10px 14px; background: var(--accent); color: white; border: none; border-radius: var(--radius); font-size: 14px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: background 0.15s; }
+.new-session-btn:hover { background: var(--accent-hover); }
+.session-list { flex: 1; overflow-y: auto; padding: 8px; }
+.session-goto { padding: 8px; border-top: 1px solid var(--border); position: relative; }
+.session-goto input { width: 100%; background: var(--bg-input); border: 1px solid var(--border); color: var(--text); border-radius: var(--radius-sm); padding: 6px 28px 6px 8px; font-size: 12px; outline: none; }
+.session-goto input:focus { border-color: var(--border-accent); }
+.session-goto .clear-filter { position: absolute; right: 14px; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 14px; padding: 2px 4px; line-height: 1; display: none; }
+.session-goto .clear-filter.visible { display: block; }
+.session-goto .clear-filter:hover { color: var(--text); }
+.session-item { padding: 10px 12px; border-radius: var(--radius); cursor: pointer; margin-bottom: 4px; transition: all 0.12s; border: 1px solid transparent; position: relative; }
+.session-item:hover { background: var(--bg-hover); }
+.session-item.active { background: var(--bg-card); border-color: var(--accent); }
+.session-item .name { font-size: 13px; font-weight: 600; margin-bottom: 3px; display: flex; align-items: center; gap: 6px; }
+.session-item .meta { font-size: 11px; color: var(--text-muted); display: flex; align-items: center; gap: 8px; }
+.session-item .menu-btn { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); opacity: 0; background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 4px 6px; border-radius: 4px; font-size: 16px; line-height: 1; letter-spacing: 1px; }
+.session-item:hover .menu-btn { opacity: 1; }
+.session-item .menu-btn:hover { color: var(--text); background: var(--bg-card); }
+.session-item .pin-indicator { color: var(--accent); font-size: 10px; flex-shrink: 0; }
+.session-item.dragging { opacity: 0.4; }
+.session-item.drag-over { border-top: 2px solid var(--accent); margin-top: -2px; }
+.session-item .rename-input { background: var(--bg-input); border: 1px solid var(--accent); color: var(--text); border-radius: 3px; padding: 1px 4px; font-size: 13px; font-weight: 600; outline: none; width: 100%; }
+
+/* Section headers */
+.section-header { padding: 8px 12px 4px; font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; gap: 6px; user-select: none; }
+.section-header .section-count { font-size: 10px; background: var(--bg-card); padding: 1px 6px; border-radius: 10px; font-weight: 400; }
+.section-header.drop-target { color: var(--accent); background: rgba(59,130,246,0.05); border-radius: var(--radius-sm); }
+
+/* Collection sections */
+.collection-section { margin-bottom: 2px; }
+.collection-header { padding: 6px 12px; font-size: 12px; font-weight: 600; color: var(--text-secondary); cursor: pointer; display: flex; align-items: center; gap: 6px; border-radius: var(--radius-sm); margin: 0 4px; user-select: none; transition: background 0.1s; }
+.collection-header:hover { background: var(--bg-hover); }
+.collection-header .chevron { font-size: 9px; width: 12px; transition: transform 0.15s; color: var(--text-muted); flex-shrink: 0; }
+.collection-header .chevron.expanded { transform: rotate(90deg); }
+.collection-header .coll-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.collection-header .coll-name-input { background: var(--bg-input); border: 1px solid var(--accent); color: var(--text); border-radius: 3px; padding: 1px 4px; font-size: 12px; font-weight: 600; outline: none; flex: 1; min-width: 0; }
+.collection-header .coll-menu-btn { opacity: 0; background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 2px 4px; border-radius: 3px; font-size: 14px; line-height: 1; letter-spacing: 1px; flex-shrink: 0; }
+.collection-header:hover .coll-menu-btn { opacity: 1; }
+.collection-header .coll-menu-btn:hover { color: var(--text); background: var(--bg-card); }
+.collection-header .coll-count { font-size: 10px; color: var(--text-muted); font-weight: 400; }
+.collection-header.drop-target { background: rgba(59,130,246,0.1); border: 1px dashed var(--accent); }
+.collection-body { padding-left: 8px; }
+
+/* Context menu */
+.context-menu-backdrop { position: fixed; inset: 0; z-index: 999; }
+.context-menu { position: fixed; z-index: 1000; background: var(--bg-panel); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: 0 8px 24px rgba(0,0,0,0.5); min-width: 180px; padding: 4px; animation: msgIn 0.12s ease-out; }
+.context-menu-item { padding: 8px 12px; font-size: 13px; cursor: pointer; border-radius: var(--radius-sm); display: flex; align-items: center; gap: 8px; color: var(--text); white-space: nowrap; }
+.context-menu-item:hover { background: var(--bg-hover); }
+.context-menu-item.danger { color: var(--red); }
+.context-menu-item.danger:hover { background: var(--red-dim); }
+.context-menu-item .shortcut { margin-left: auto; font-size: 11px; color: var(--text-muted); }
+.context-menu-item.submenu-trigger { position: relative; }
+.context-menu-item.submenu-trigger::after { content: '▸'; margin-left: auto; font-size: 11px; color: var(--text-muted); }
+.context-menu-divider { height: 1px; background: var(--border); margin: 4px 0; }
+
+/* Create collection button */
+.create-collection-btn { width: calc(100% - 8px); margin: 4px; padding: 6px 12px; background: none; border: 1px dashed var(--border); color: var(--text-muted); border-radius: var(--radius-sm); cursor: pointer; font-size: 12px; display: flex; align-items: center; gap: 6px; justify-content: center; transition: all 0.15s; }
+.create-collection-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+/* User bar at bottom of sidebar */
+.user-bar { padding: 12px 16px; border-top: 1px solid var(--border); display: flex; align-items: center; gap: 10px; }
+.user-bar .user-avatar { width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, #6366f1, #8b5cf6); display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; color: white; flex-shrink: 0; }
+.user-bar .user-info { flex: 1; min-width: 0; }
+.user-bar .user-name { font-size: 13px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.user-bar .user-email { font-size: 11px; color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.user-bar .logout-btn { background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 4px; border-radius: 4px; font-size: 12px; }
+.user-bar .logout-btn:hover { color: var(--red); }
+
+/* Status dot */
+.dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; flex-shrink: 0; }
+.dot.idle { background: var(--green); }
+.dot.busy { background: var(--yellow); animation: pulse 1.2s infinite; }
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+/* Concurrency bar */
+.concurrency-bar { padding: 12px 16px; border-top: 1px solid var(--border); }
+.concurrency-bar .label { font-size: 11px; color: var(--text-muted); margin-bottom: 6px; display: flex; justify-content: space-between; }
+.concurrency-track { height: 4px; background: var(--bg-card); border-radius: 2px; overflow: hidden; }
+.concurrency-fill { height: 100%; border-radius: 2px; transition: width 0.3s, background 0.3s; }
+
+/* ====== CHAT ====== */
+.chat-header { padding: 12px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; background: var(--bg-panel); }
+.chat-header .title { font-size: 15px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+.chat-header .model-badge { font-size: 11px; color: var(--text-muted); background: var(--bg-card); padding: 3px 10px; border-radius: 20px; font-family: var(--mono); }
+
+.chat-messages { flex: 1; overflow-y: auto; padding: 20px; }
+.message { margin-bottom: 16px; display: flex; gap: 12px; max-width: 100%; animation: msgIn 0.25s ease-out; }
+@keyframes msgIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+.message .avatar { width: 30px; height: 30px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; flex-shrink: 0; }
+.message.user .avatar { background: linear-gradient(135deg, #6366f1, #8b5cf6); }
+.message.assistant .avatar { background: linear-gradient(135deg, #059669, #10b981); }
+.message .bubble { flex: 1; min-width: 0; }
+.message .bubble-header { font-size: 12px; color: var(--text-muted); margin-bottom: 4px; font-weight: 500; }
+.message .bubble-content { font-size: 14px; line-height: 1.65; color: var(--text); word-break: break-word; }
+.message .bubble-content p { margin-bottom: 8px; }
+.message .bubble-content p:last-child { margin-bottom: 0; }
+
+/* Code blocks in messages */
+.code-block-wrap { margin: 8px 0; border-radius: var(--radius); overflow: hidden; border: 1px solid var(--border); }
+.code-block-header { background: #1a1a1f; padding: 6px 12px; font-size: 11px; color: var(--text-muted); font-family: var(--mono); display: flex; justify-content: space-between; align-items: center; }
+.code-block-header .copy-btn { background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 11px; padding: 2px 6px; border-radius: 4px; }
+.code-block-header .copy-btn:hover { color: var(--text); background: var(--bg-hover); }
+pre.code-block { background: var(--code-bg); padding: 12px 14px; margin: 0; overflow-x: auto; font-family: var(--mono); font-size: 13px; line-height: 1.55; color: #d4d4d8; }
+code.inline { background: var(--bg-card); padding: 2px 6px; border-radius: 4px; font-family: var(--mono); font-size: 12px; color: #f472b6; }
+
+/* Chat input */
+.chat-input-area { padding: 16px 20px; border-top: 1px solid var(--border); background: var(--bg-panel); }
+.chat-input-wrap { background: var(--bg-input); border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; transition: border-color 0.15s; }
+.chat-input-wrap:focus-within { border-color: var(--accent); }
+.chat-input-wrap textarea { width: 100%; background: transparent; border: none; color: var(--text); padding: 12px 16px; font-size: 14px; resize: none; outline: none; min-height: 52px; max-height: 160px; line-height: 1.5; }
+.chat-input-wrap textarea::placeholder { color: var(--text-muted); }
+.chat-input-toolbar { display: flex; align-items: center; justify-content: space-between; padding: 8px 12px; }
+.chat-input-toolbar .hints { font-size: 11px; color: var(--text-muted); }
+.chat-input-toolbar .actions { display: flex; gap: 6px; }
+.send-btn { padding: 7px 16px; border: none; border-radius: var(--radius); font-size: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: all 0.15s; }
+.send-btn.primary { background: var(--accent); color: white; }
+.send-btn.primary:hover { background: var(--accent-hover); }
+.send-btn.secondary { background: var(--bg-card); color: var(--text-secondary); border: 1px solid var(--border); }
+.send-btn.secondary:hover { background: var(--bg-hover); }
+.send-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* Model selector chip */
+.model-select-chip { display: inline-flex; align-items: center; gap: 4px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 20px; padding: 5px 10px; font-size: 12px; color: var(--text-secondary); cursor: pointer; transition: all 0.15s; font-family: var(--mono); white-space: nowrap; position: relative; }
+.model-select-chip:hover { border-color: var(--border-accent); background: var(--bg-hover); }
+.model-select-chip select { appearance: none; background: transparent; border: none; color: var(--text-secondary); font-size: 12px; font-family: var(--mono); cursor: pointer; outline: none; padding-right: 14px; }
+.model-select-chip::after { content: '\25BC'; position: absolute; right: 10px; font-size: 10px; color: var(--text-muted); pointer-events: none; }
+
+/* Circular send button */
+.send-circle { width: 34px; height: 34px; border-radius: 50%; background: var(--text); border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.15s; flex-shrink: 0; }
+.send-circle:hover { transform: scale(1.08); }
+.send-circle:disabled { background: var(--border); cursor: not-allowed; transform: none; }
+.send-circle svg { width: 16px; height: 16px; }
+.upload-btn { background: var(--bg-card); color: var(--text-secondary); border: 1px solid var(--border); border-radius: var(--radius); padding: 7px 12px; font-size: 13px; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: all 0.15s; }
+.upload-btn:hover { background: var(--bg-hover); border-color: var(--border-accent); }
+
+/* ====== RIGHT PANEL ====== */
+.panel-tabs { display: flex; border-bottom: 1px solid var(--border); }
+.panel-tab { flex: 1; padding: 10px; text-align: center; font-size: 12px; font-weight: 600; cursor: pointer; border-bottom: 2px solid transparent; color: var(--text-muted); transition: all 0.12s; background: none; border-top: none; border-left: none; border-right: none; }
+.panel-tab:hover { color: var(--text-secondary); }
+.panel-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+.panel-content { flex: 1; overflow-y: auto; position: relative; }
+
+/* File tree */
+.file-tree { padding: 8px; }
+.file-tree-header { padding: 6px 10px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+.file-tree-item { display: flex; align-items: center; gap: 6px; padding: 6px 10px; border-radius: var(--radius-sm); cursor: pointer; font-size: 13px; transition: background 0.1s; }
+.file-tree-item:hover { background: var(--bg-hover); }
+.file-tree-item.active { background: var(--bg-card); }
+.file-tree-item .icon { font-size: 14px; width: 18px; text-align: center; }
+.file-tree-item .fname { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.file-tree-item .fsize { font-size: 11px; color: var(--text-muted); }
+.file-tree-item.dir .fname { color: var(--cyan); }
+.file-tree-item .ref-btn { opacity: 0; background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 12px; padding: 2px 4px; border-radius: 3px; flex-shrink: 0; transition: opacity 0.1s, color 0.1s; }
+.file-tree-item:hover .ref-btn { opacity: 1; }
+.file-tree-item .ref-btn:hover { color: var(--accent); background: rgba(59,130,246,0.1); }
+.file-ref-chip { display: inline-flex; align-items: center; gap: 4px; background: rgba(59,130,246,0.12); color: var(--accent); border-radius: 4px; padding: 1px 6px; font-size: 12px; font-family: var(--mono); margin-right: 4px; vertical-align: middle; }
+.file-grid-item .ref-btn { position: absolute; top: 4px; right: 4px; opacity: 0; background: var(--bg-card); border: 1px solid var(--border); color: var(--text-muted); cursor: pointer; font-size: 11px; padding: 2px 5px; border-radius: 4px; transition: opacity 0.1s, color 0.1s; }
+.file-grid-item:hover .ref-btn { opacity: 1; }
+.file-grid-item .ref-btn:hover { color: var(--accent); border-color: var(--accent); }
+.file-grid-item { position: relative; }
+.file-tree-empty { padding: 40px 20px; text-align: center; color: var(--text-muted); font-size: 13px; }
+
+/* Upload dropzone */
+.dropzone { border: 2px dashed var(--border); border-radius: var(--radius); padding: 20px; text-align: center; margin: 8px; color: var(--text-muted); font-size: 13px; transition: all 0.15s; cursor: pointer; }
+.dropzone:hover, .dropzone.dragover { border-color: var(--accent); background: rgba(59,130,246,0.05); color: var(--accent); }
+
+/* Pending uploads in chat input */
+.pending-uploads { display: flex; flex-wrap: wrap; gap: 6px; padding: 8px 12px 0; }
+.file-chip { display: inline-flex; align-items: center; gap: 6px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 20px; padding: 4px 10px 4px 6px; font-size: 12px; color: var(--text-secondary); animation: msgIn 0.2s ease-out; }
+.file-chip .chip-icon { width: 20px; height: 20px; border-radius: 4px; object-fit: cover; }
+.file-chip .chip-name { max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.file-chip .chip-remove { background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 0 2px; font-size: 14px; line-height: 1; }
+.file-chip .chip-remove:hover { color: var(--red); }
+
+/* File grid view */
+.file-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 8px; padding: 8px; }
+.file-grid-item { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 6px; border-radius: var(--radius); cursor: pointer; transition: background 0.1s; border: 1px solid transparent; }
+.file-grid-item:hover { background: var(--bg-hover); }
+.file-grid-item.active { background: var(--bg-card); border-color: var(--accent); }
+.file-grid-item .grid-thumb { width: 48px; height: 48px; border-radius: 6px; object-fit: cover; background: var(--bg-input); display: flex; align-items: center; justify-content: center; font-size: 22px; color: var(--text-muted); overflow: hidden; }
+.file-grid-item .grid-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.file-grid-item .grid-name { font-size: 11px; color: var(--text-secondary); text-align: center; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.file-grid-item .grid-size { font-size: 10px; color: var(--text-muted); }
+
+/* View toggle */
+.view-toggle { display: flex; gap: 2px; background: var(--bg-input); border-radius: 4px; padding: 2px; }
+.view-toggle button { background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 3px 6px; border-radius: 3px; font-size: 12px; line-height: 1; }
+.view-toggle button.active { background: var(--bg-card); color: var(--text); }
+
+/* Image preview in preview tab */
+.preview-image-wrap { flex: 1; display: flex; align-items: center; justify-content: center; background: var(--code-bg); overflow: auto; padding: 20px; }
+.preview-image-wrap img { max-width: 100%; max-height: 100%; border-radius: 4px; }
+.preview-text-wrap { flex: 1; overflow: auto; padding: 20px; background: var(--code-bg); color: #d4d4d8; font-family: var(--font); font-size: 14px; line-height: 1.7; white-space: pre-wrap; word-break: break-word; }
+
+/* Code viewer */
+.code-viewer { display: flex; flex-direction: column; height: 100%; }
+.code-viewer-header { padding: 8px 12px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; background: var(--bg-card); }
+.code-viewer-header .filename { font-size: 12px; font-family: var(--mono); color: var(--text-secondary); }
+.code-viewer-body { flex: 1; overflow: auto; }
+.code-viewer-body pre { padding: 12px; margin: 0; font-family: var(--mono); font-size: 12px; line-height: 1.6; color: #d4d4d8; background: var(--code-bg); min-height: 100%; }
+.code-viewer-empty { display: flex; align-items: center; justify-content: center; height: 100%; color: var(--text-muted); font-size: 13px; }
+
+/* Preview */
+.preview-area { display: flex; flex-direction: column; height: 100%; }
+.preview-toolbar { padding: 6px 12px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 8px; background: var(--bg-card); }
+.preview-toolbar .url-bar { flex: 1; background: var(--bg-input); border: 1px solid var(--border); color: var(--text-muted); padding: 5px 10px; border-radius: var(--radius-sm); font-size: 11px; font-family: var(--mono); }
+.preview-frame-wrap { flex: 1; background: white; }
+.preview-frame-wrap iframe { width: 100%; height: 100%; border: none; }
+.preview-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: var(--text-muted); gap: 8px; }
+.preview-empty svg { opacity: 0.3; }
+
+/* Empty state */
+.empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: var(--text-muted); gap: 12px; padding: 40px; }
+.empty-state svg { opacity: 0.15; width: 80px; height: 80px; }
+.empty-state h3 { font-size: 16px; color: var(--text-secondary); }
+.empty-state p { font-size: 13px; text-align: center; max-width: 360px; line-height: 1.6; }
+
+/* Toast */
+.toast { position: fixed; bottom: 20px; right: 20px; background: var(--bg-card); border: 1px solid var(--border); color: var(--text); padding: 10px 16px; border-radius: var(--radius); font-size: 13px; box-shadow: 0 4px 12px rgba(0,0,0,0.4); z-index: 999; animation: toastIn 0.2s ease-out; }
+@keyframes toastIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+/* Loading spinner */
+.spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.6s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Scroll-to-bottom button */
+.scroll-bottom-btn { position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%); background: var(--bg-card); border: 1px solid var(--border); color: var(--text-secondary); padding: 6px 16px; border-radius: 20px; font-size: 12px; font-weight: 500; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.4); z-index: 10; transition: all 0.15s; display: flex; align-items: center; gap: 6px; }
+.scroll-bottom-btn:hover { background: var(--bg-hover); color: var(--text); border-color: var(--accent); }
+
+/* Responsive */
+@media (max-width: 900px) {
+  .sidebar { display: none; }
+  .right-panel { display: none; }
+}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect, useLayoutEffect, useRef, useCallback, useMemo } = React;
+
+/* ====== API HELPERS ====== */
+let authToken = sessionStorage.getItem('codex_token') || '';
+
+function setAuth(token) {
+  authToken = token;
+  if (token) sessionStorage.setItem('codex_token', token);
+  else sessionStorage.removeItem('codex_token');
+}
+
+async function api(path, opts = {}) {
+  const headers = { 'content-type': 'application/json' };
+  if (authToken) headers['authorization'] = `Bearer ${authToken}`;
+  const res = await fetch(path, { ...opts, headers: { ...headers, ...(opts.headers || {}) } });
+  if (res.status === 401) {
+    setAuth('');
+    window.location.reload();
+    throw new Error('登录已过期');
+  }
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || `Request failed ${res.status}`);
+  return data;
+}
+
+async function apiUpload(path, formData) {
+  const headers = {};
+  if (authToken) headers['authorization'] = `Bearer ${authToken}`;
+  const res = await fetch(path, { method: 'POST', headers, body: formData });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || `Upload failed ${res.status}`);
+  return data;
+}
+
+function getSessionIdFromUrl() {
+  const params = new URLSearchParams(window.location.search);
+  return params.get('session') || params.get('sid') || '';
+}
+
+function setSessionIdToUrl(sessionId) {
+  const url = new URL(window.location.href);
+  if (sessionId) {
+    url.searchParams.set('session', sessionId);
+  } else {
+    url.searchParams.delete('session');
+  }
+  url.searchParams.delete('sid');
+  window.history.replaceState({}, '', `${url.pathname}${url.search}`);
+}
+
+/* ====== MARKDOWN LITE ====== */
+function renderMd(text) {
+  if (!text) return '';
+  const escaped = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  let result = escaped.replace(/```(\w*)\n([\s\S]*?)```/g, (_, lang, code) => {
+    const langLabel = lang || 'code';
+    return `<div class="code-block-wrap"><div class="code-block-header"><span>${langLabel}</span><button class="copy-btn" onclick="navigator.clipboard.writeText(this.closest('.code-block-wrap').querySelector('pre').textContent)">Copy</button></div><pre class="code-block">${code}</pre></div>`;
+  });
+  result = result.replace(/`([^`]+)`/g, '<code class="inline">$1</code>');
+  result = result.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  result = result.replace(/\*(.+?)\*/g, '<em>$1</em>');
+  result = result.split('\n\n').map(p => {
+    if (p.includes('code-block-wrap')) return p;
+    return `<p>${p.replace(/\n/g, '<br/>')}</p>`;
+  }).join('');
+  return result;
+}
+
+/* ====== ICONS ====== */
+const Icons = {
+  logo: <svg viewBox="0 0 28 28" fill="none"><rect width="28" height="28" rx="7" fill="#3b82f6"/><path d="M8 14l4 4 8-8" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>,
+  plus: <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 1v12M1 7h12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>,
+  send: <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M1 7h10M8 3l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>,
+  trash: <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 4h10M5 4V2h4v2M4 4v8h6V4" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/></svg>,
+  file: <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 1h5l3 3v9H3V1z" stroke="currentColor" strokeWidth="1.2"/><path d="M8 1v3h3" stroke="currentColor" strokeWidth="1.2"/></svg>,
+  folder: <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M1 3h4l2 2h6v7H1V3z" stroke="currentColor" strokeWidth="1.2" fill="none"/></svg>,
+  eye: <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><ellipse cx="7" cy="7" rx="6" ry="3.5" stroke="currentColor" strokeWidth="1.2"/><circle cx="7" cy="7" r="1.5" stroke="currentColor" strokeWidth="1.2"/></svg>,
+  refresh: <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M1 6a5 5 0 019-3M11 6a5 5 0 01-9 3" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/><path d="M10 1v2.5H7.5M2 11V8.5h2.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/></svg>,
+  upload: <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 10V2M4 5l3-3 3 3M2 10v2h10v-2" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/></svg>,
+  logout: <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M5 1H2v12h3M9 4l3 3-3 3M12 7H5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/></svg>,
+  code: <svg width="40" height="40" viewBox="0 0 40 40" fill="none"><rect width="40" height="40" rx="10" fill="currentColor" opacity="0.08"/><path d="M14 15l-5 5 5 5M26 15l5 5-5 5M22 12l-4 16" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>,
+};
+
+/* ====== TOAST ====== */
+function Toast({ message, onClose }) {
+  useEffect(() => { const t = setTimeout(onClose, 3000); return () => clearTimeout(t); }, []);
+  return <div className="toast">{message}</div>;
+}
+
+/* ====== AUTH PAGE ====== */
+function AuthPage({ onLogin }) {
+  const [mode, setMode] = useState('login'); // login | register
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [name, setName] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+    try {
+      const endpoint = mode === 'login' ? '/api/auth/login' : '/api/auth/register';
+      const body = mode === 'login' ? { email, password } : { email, password, display_name: name };
+      const data = await api(endpoint, { method: 'POST', body: JSON.stringify(body) });
+      setAuth(data.token);
+      onLogin(data.user);
+    } catch (e) {
+      setError(e.message);
+    }
+    setLoading(false);
+  }
+
+  return (
+    <div className="auth-page">
+      <form className="auth-card" onSubmit={handleSubmit}>
+        <h1>{mode === 'login' ? '欢迎回来' : '创建账号'}</h1>
+        <p className="subtitle">{mode === 'login' ? '登录 Codex Lab 继续使用' : '注册以开始使用 Codex Lab'}</p>
+
+        {error && <div className="auth-error">{error}</div>}
+
+        <div className="auth-field">
+          <label>邮箱</label>
+          <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="your@email.com" required />
+        </div>
+
+        {mode === 'register' && (
+          <div className="auth-field">
+            <label>显示名称</label>
+            <input type="text" value={name} onChange={e => setName(e.target.value)} placeholder="你的名字" />
+          </div>
+        )}
+
+        <div className="auth-field">
+          <label>密码</label>
+          <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="至少6位" required minLength={6} />
+        </div>
+
+        <button className="auth-btn" type="submit" disabled={loading}>
+          {loading ? <span className="spinner"></span> : (mode === 'login' ? '登录' : '注册')}
+        </button>
+
+        <div className="auth-toggle">
+          {mode === 'login' ? (
+            <>还没有账号？<a onClick={() => { setMode('register'); setError(''); }}>立即注册</a></>
+          ) : (
+            <>已有账号？<a onClick={() => { setMode('login'); setError(''); }}>去登录</a></>
+          )}
+        </div>
+      </form>
+    </div>
+  );
+}
+
+/* ====== RESIZE HOOK ====== */
+function useResize(initialWidth, minW, maxW) {
+  const [width, setWidth] = useState(initialWidth);
+  const dragging = useRef(false);
+
+  const onMouseDown = useCallback((e) => {
+    e.preventDefault();
+    dragging.current = true;
+    const startX = e.clientX;
+    const startW = width;
+
+    function onMove(ev) {
+      if (!dragging.current) return;
+      const delta = ev.clientX - startX;
+      setWidth(Math.min(maxW, Math.max(minW, startW + delta)));
+    }
+    function onUp() {
+      dragging.current = false;
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    }
+
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  }, [width, minW, maxW]);
+
+  return { width, onMouseDown };
+}
+
+/* For right panel, drag left = wider */
+function useResizeRight(initialWidth, minW, maxW) {
+  const [width, setWidth] = useState(initialWidth);
+  const dragging = useRef(false);
+
+  const onMouseDown = useCallback((e) => {
+    e.preventDefault();
+    dragging.current = true;
+    const startX = e.clientX;
+    const startW = width;
+
+    function onMove(ev) {
+      if (!dragging.current) return;
+      const delta = startX - ev.clientX; // reversed
+      setWidth(Math.min(maxW, Math.max(minW, startW + delta)));
+    }
+    function onUp() {
+      dragging.current = false;
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    }
+
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  }, [width, minW, maxW]);
+
+  return { width, onMouseDown };
+}
+
+/* ====== SESSION ITEM ====== */
+function SessionItem({ session, isActive, onSelect, onDelete, onContextMenu, onDragStart, onDragEnd, onDragOver, onDragOverItem, isDragOver, isDragging, isRenaming, renameValue, onRenameChange, onRenameSubmit, onRenameCancel, onPinToggle, onMenuClick }) {
+  const busy = session.isProcessing || session.queueLength > 0;
+  const pinned = session.pinned;
+  return (
+    <div
+      className={`session-item ${isActive ? 'active' : ''} ${isDragging ? 'dragging' : ''} ${isDragOver ? 'drag-over' : ''}`}
+      onClick={onSelect}
+      draggable={true}
+      onDragStart={onDragStart}
+      onDragEnd={onDragEnd}
+      onDragOver={onDragOverItem}
+      onDrop={onDragOver}
+      onContextMenu={onContextMenu}
+    >
+      <div className="name">
+        {pinned && <span className="pin-indicator">📌</span>}
+        <span className={`dot ${busy ? 'busy' : 'idle'}`}></span>
+        {isRenaming ? (
+          <input
+            className="rename-input"
+            value={renameValue}
+            onChange={onRenameChange}
+            onKeyDown={(e) => { if (e.key === 'Enter') onRenameSubmit(); else if (e.key === 'Escape') onRenameCancel(); e.stopPropagation(); }}
+            onClick={(e) => e.stopPropagation()}
+            autoFocus
+          />
+        ) : (
+          <span style={{overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{session.title}</span>
+        )}
+      </div>
+      <div className="meta">
+        <span>{session.model || 'Codex-Spark'}</span>
+        <span>{busy ? '执行中' : '空闲'}</span>
+      </div>
+      <button className="menu-btn" onClick={(e) => { e.stopPropagation(); e.preventDefault(); onMenuClick(e); }} title="更多操作">⋮</button>
+    </div>
+  );
+}
+
+/* ====== CONTEXT MENU ====== */
+function ContextMenu({ x, y, sessionId, sessionPinned, collections, onClose, onPin, onMoveToCollection, onRename, onDelete, onCreateCollection, onExport }) {
+  const menuRef = useRef(null);
+  const [showSubmenu, setShowSubmenu] = useState(false);
+  const [submenuPos, setSubmenuPos] = useState({ x: 0, y: 0 });
+
+  useEffect(() => {
+    const handler = (e) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, [onClose]);
+
+  useEffect(() => {
+    if (menuRef.current) {
+      const rect = menuRef.current.getBoundingClientRect();
+      const vw = window.innerWidth;
+      const vh = window.innerHeight;
+      let nx = x, ny = y;
+      if (nx + rect.width > vw - 8) nx = vw - rect.width - 8;
+      if (ny + rect.height > vh - 8) ny = vh - rect.height - 8;
+      if (nx !== x || ny !== y) {
+        menuRef.current.style.left = nx + 'px';
+        menuRef.current.style.top = ny + 'px';
+      }
+    }
+  }, [x, y]);
+
+  const handleSubmenuEnter = () => {
+    setShowSubmenu(true);
+    if (menuRef.current) {
+      const trigger = menuRef.current.querySelector('.submenu-trigger');
+      if (trigger) {
+        const rect = trigger.getBoundingClientRect();
+        const menuRect = menuRef.current.getBoundingClientRect();
+        const vw = window.innerWidth;
+        let sx = rect.right + 4;
+        if (sx + 180 > vw) sx = rect.left - 184;
+        setSubmenuPos({ x: sx, y: rect.top });
+      }
+    }
+  };
+
+  return (
+    <>
+      <div className="context-menu-backdrop" onClick={onClose} onContextMenu={e => { e.preventDefault(); onClose(); }} />
+      <div className="context-menu" ref={menuRef} style={{ left: x, top: y }}>
+        <div className="context-menu-item" onClick={() => { onRename(sessionId); onClose(); }}>
+          <span>✏️</span><span>重命名</span>
+        </div>
+        <div className="context-menu-item" onClick={() => { onPin(sessionId); onClose(); }}>
+          <span>{sessionPinned ? '📌' : '⭐'}</span>
+          <span>{sessionPinned ? '取消置顶' : '置顶'}</span>
+        </div>
+        <div className="context-menu-item submenu-trigger" onMouseEnter={handleSubmenuEnter} onMouseLeave={() => setShowSubmenu(false)}>
+          <span>📁</span>
+          <span>分组</span>
+        </div>
+        {showSubmenu && (
+          <div className="context-menu" style={{ left: submenuPos.x, top: submenuPos.y }}>
+            <div className="context-menu-item" onClick={() => { onMoveToCollection(sessionId, null); onClose(); }}>
+              <span>无分组</span>
+            </div>
+            <div className="context-menu-divider" />
+            {collections.map(c => (
+              <div key={c.id} className="context-menu-item" onClick={() => { onMoveToCollection(sessionId, c.id); onClose(); }}>
+                <span>📁</span><span>{c.name}</span>
+              </div>
+            ))}
+            {collections.length > 0 && <div className="context-menu-divider" />}
+            <div className="context-menu-item" onClick={() => { onCreateCollection(sessionId); onClose(); }}>
+              <span>➕</span><span>新建集合...</span>
+            </div>
+          </div>
+        )}
+        <div className="context-menu-divider" />
+        <div className="context-menu-item" onClick={() => { onExport(sessionId); onClose(); }}>
+          <span>📥</span><span>导出对话记录</span>
+        </div>
+        <div className="context-menu-divider" />
+        <div className="context-menu-item danger" onClick={() => { onDelete(sessionId); onClose(); }}>
+          <span>📦</span><span>归档</span>
+        </div>
+      </div>
+    </>
+  );
+}
+
+/* ====== CONCURRENCY BAR ====== */
+function ConcurrencyBar({ active, max }) {
+  const pct = max > 0 ? (active / max) * 100 : 0;
+  const color = pct > 75 ? 'var(--red)' : pct > 50 ? 'var(--yellow)' : 'var(--green)';
+  return (
+    <div className="concurrency-bar">
+      <div className="label">
+        <span>并发占用</span>
+        <span>{active} / {max}</span>
+      </div>
+      <div className="concurrency-track">
+        <div className="concurrency-fill" style={{ width: `${Math.min(pct, 100)}%`, background: color }}></div>
+      </div>
+    </div>
+  );
+}
+
+/* ====== CHAT MESSAGE ====== */
+function ChatMessage({ msg }) {
+  const isUser = msg.role === 'user';
+  const html = useMemo(() => renderMd(msg.content || ''), [msg.content]);
+  return (
+    <div className={`message ${msg.role}`}>
+      <div className="avatar">{isUser ? 'U' : 'C'}</div>
+      <div className="bubble">
+        <div className="bubble-header">
+          {isUser ? 'You' : 'Codex'}
+          {msg.usage && <span style={{marginLeft:'12px',fontSize:'11px',color:'var(--text-muted)'}}>
+            tokens: {msg.usage.input_tokens || 0} in / {msg.usage.output_tokens || 0} out
+          </span>}
+        </div>
+        <div className="bubble-content" dangerouslySetInnerHTML={{ __html: html }}></div>
+      </div>
+    </div>
+  );
+}
+
+/* ====== FILE TREE ITEM ====== */
+function FileTreeItem({ item, isActive, onClick, onReference }) {
+  const displayName = item.displayName || item.name;
+  const isDir = item.type === 'dir';
+  const size = isDir ? '' : item.size > 1024 ? `${(item.size/1024).toFixed(1)}KB` : `${item.size}B`;
+  return (
+    <div className={`file-tree-item ${isDir ? 'dir' : ''} ${isActive ? 'active' : ''}`} onClick={onClick}>
+      <span className="icon">{isDir ? Icons.folder : Icons.file}</span>
+      <span className="fname">{displayName}</span>
+      {size && <span className="fsize">{size}</span>}
+      {!isDir && onReference && (
+        <button className="ref-btn" onClick={(e) => { e.stopPropagation(); onReference(item); }} title="引用到输入框">@</button>
+      )}
+    </div>
+  );
+}
+
+/* ====== MAIN APP ====== */
+function MainApp({ user, onLogout }) {
+  const [sessions, setSessions] = useState([]);
+  const [activeId, setActiveId] = useState(null);
+  const [config, setConfig] = useState({ defaultModel: 'gpt-5.3-codex-spark', maxConcurrentSessions: 4 });
+  const [messages, setMessages] = useState([]);
+  const [files, setFiles] = useState([]);
+  const [inputValue, setInputValue] = useState('');
+  const [rightTab, setRightTab] = useState('files');
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [fileContent, setFileContent] = useState('');
+  const [previewPath, setPreviewPath] = useState('');
+  const [toast, setToast] = useState(null);
+  const [sending, setSending] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [activeProcessors, setActiveProcessors] = useState(0);
+  const [dropActive, setDropActive] = useState(false);
+  const [pendingUploads, setPendingUploads] = useState([]); // File objects staged in chat input
+  const [fileViewMode, setFileViewMode] = useState('list'); // list | grid
+  const [currentModel, setCurrentModel] = useState('gpt-5.3-codex-spark');
+  const [sessionSearchValue, setSessionSearchValue] = useState('');
+  const [collections, setCollections] = useState([]);
+  const [collapsedCollections, setCollapsedCollections] = useState(new Set());
+  const [contextMenu, setContextMenu] = useState(null);
+  const [renamingSessionId, setRenamingSessionId] = useState(null);
+  const [renameValue, setRenameValue] = useState('');
+  const [dragOverTarget, setDragOverTarget] = useState(null);
+  const [draggingSessionId, setDraggingSessionId] = useState(null);
+  const [renamingCollectionId, setRenamingCollectionId] = useState(null);
+  const [collectionRenameValue, setCollectionRenameValue] = useState('');
+  const dragRef = useRef({ isDragging: false, draggedId: null });
+  const suppressPollRef = useRef(false);
+  const initialLoadRef = useRef(true);
+
+  const MODEL_OPTIONS = ['gpt-5.3-codex-spark', 'gpt-5.3-codex', 'o3', 'o4-mini'];
+
+  // File type detection
+  const IMAGE_EXT = /\.(png|jpe?g|gif|webp|svg|bmp|ico)$/i;
+  const TEXT_EXT = /\.(txt|md|markdown|log|csv|json|yaml|yml|toml|xml|ini|cfg|conf|env|sh|bat|py|js|ts|jsx|tsx|html|htm|css|scss|sql|go|rs|java|c|cpp|h|hpp|rb|php|swift|kt)$/i;
+  const getFileDisplayName = (item) => item?.displayName || item?.name || '';
+  const isImage = (name) => IMAGE_EXT.test(name || '');
+  const isText = (name) => TEXT_EXT.test(name || '');
+  const isHtml = (name) => /\.(html|htm)$/i.test(name || '');
+  const MODEL_3D_EXT = /\.(stl|obj|gltf|glb|ply)$/i;
+  const is3D = (name) => MODEL_3D_EXT.test(name || '');
+  const isPreviewable = (name) => isImage(name) || isText(name) || isHtml(name) || is3D(name);
+
+  const chatEndRef = useRef(null);
+  const chatContainerRef = useRef(null);
+  const textareaRef = useRef(null);
+  const pollRef = useRef(null);
+  const fileInputRef = useRef(null);
+  const [userScrolledUp, setUserScrolledUp] = useState(false);
+  const prevMsgCountRef = useRef(0);
+
+  const leftResize = useResize(280, 200, 450);
+  const rightResize = useResizeRight(420, 240, 700);
+
+  const activeSession = sessions.find(s => s.id === activeId);
+
+  // Detect if user scrolled up
+  function handleChatScroll(e) {
+    const el = e.target;
+    if (!el) return;
+    const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+    setUserScrolledUp(distanceFromBottom > 80);
+  }
+
+  // Auto-scroll to bottom when new messages arrive (only if user hasn't scrolled up)
+  useLayoutEffect(() => {
+    const count = messages.length;
+    const hasNewMessages = count > prevMsgCountRef.current;
+    prevMsgCountRef.current = count;
+
+    if (!hasNewMessages && count > 0) return;
+    if (userScrolledUp) return;
+
+    const el = chatEndRef.current;
+    if (!el) return;
+
+    // Use rAF to ensure DOM is painted before scrolling
+    requestAnimationFrame(() => {
+      el.scrollIntoView({ behavior: 'auto', block: 'end' });
+      // Double-check after a frame in case content is still rendering
+      requestAnimationFrame(() => {
+        el.scrollIntoView({ behavior: 'auto', block: 'end' });
+      });
+    });
+  }, [messages]);
+
+  // Force scroll when session changes
+  useEffect(() => {
+    prevMsgCountRef.current = 0;
+    setUserScrolledUp(false);
+    const el = chatEndRef.current;
+    if (el) {
+      requestAnimationFrame(() => el.scrollIntoView({ behavior: 'auto', block: 'end' }));
+    }
+  }, [activeId]);
+
+  function scrollToBottom() {
+    const el = chatEndRef.current;
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'end' });
+      setUserScrolledUp(false);
+    }
+  }
+
+  // Auto-resize textarea
+  useEffect(() => {
+    const ta = textareaRef.current;
+    if (ta) { ta.style.height = 'auto'; ta.style.height = Math.min(ta.scrollHeight, 160) + 'px'; }
+  }, [inputValue]);
+
+  // Init
+  useEffect(() => {
+    (async () => {
+      try {
+        const cfg = await api('/api/config');
+        setConfig(cfg);
+      } catch {}
+      await refreshSessions();
+      await loadCollections();
+    })();
+  }, []);
+
+  // Polling
+  useEffect(() => {
+    if (pollRef.current) clearInterval(pollRef.current);
+    if (activeId) {
+      pollRef.current = setInterval(() => pollSession(activeId, false), 2000);
+      pollSession(activeId, true);
+    }
+    return () => { if (pollRef.current) clearInterval(pollRef.current); };
+  }, [activeId]);
+
+  const showToast = (msg) => setToast(msg);
+
+  function resolveSessionFromList(list, options = {}) {
+    const requestedID = getSessionIdFromUrl();
+    const hasRequested = requestedID && list.some((s) => s.id === requestedID);
+    const hasActive = activeId && list.some((s) => s.id === activeId);
+
+    if (options.forceRequested && hasRequested) {
+      return requestedID;
+    }
+
+    if (hasActive) return activeId;
+    if (hasRequested) return requestedID;
+    return list[0]?.id || null;
+  }
+
+  function syncActiveSessionFromList(list) {
+    const nextId = resolveSessionFromList(list);
+    if (nextId !== activeId) {
+      setActiveId(nextId);
+      setSessionIdToUrl(nextId);
+    }
+  }
+
+  async function refreshSessions() {
+    if (dragRef.current.isDragging) return;
+    try {
+      const data = await api('/api/sessions');
+      setSessions(data.sessions || []);
+      setActiveProcessors(data.activeProcessors || 0);
+      syncActiveSessionFromList(data.sessions || []);
+      if (initialLoadRef.current) {
+        const urlId = getSessionIdFromUrl();
+        if (urlId) setSessionSearchValue(urlId);
+        initialLoadRef.current = false;
+      }
+    } catch (e) { showToast(e.message); }
+  }
+
+  async function loadCollections() {
+    try {
+      const data = await api('/api/collections');
+      setCollections(data.collections || []);
+    } catch {}
+  }
+
+  async function pollSession(sid, initialLoad = false) {
+    try {
+      const data = await api(`/api/sessions/${sid}`);
+      const s = data.session;
+      const nowBusy = s.isProcessing || s.queueLength > 0;
+      const wasBusy = isProcessing;
+      setMessages(s.messages || []);
+      setIsProcessing(nowBusy);
+      setSessions(prev => prev.map(x => x.id === sid ? { ...x, ...s } : x));
+
+      // Also refresh session list for concurrency bar (skip during drag)
+      if (!suppressPollRef.current) {
+        const listData = await api('/api/sessions');
+        setSessions(listData.sessions || []);
+        setActiveProcessors(listData.activeProcessors || 0);
+      }
+
+      const justCompleted = wasBusy && !nowBusy;
+      await loadFilesForSession(sid, justCompleted || initialLoad);
+    } catch {}
+  }
+
+  async function loadFilesForSession(sid, autoPreview = true) {
+    try {
+      const data = await api(`/api/sessions/${sid}/files`);
+      const newFiles = data.files || [];
+      const prevNames = new Set(files.map(f => f.path));
+      setFiles(newFiles);
+      if (autoPreview) {
+        const htmlFiles = newFiles.filter(f => isHtml(getFileDisplayName(f)));
+        const newHtml = htmlFiles.find(f => !prevNames.has(f.path));
+        if (newHtml) {
+          setSelectedFile(newHtml);
+          setPreviewPath(newHtml.path);
+          setRightTab('preview');
+          try {
+            const fc = await api(`/api/sessions/${sid}/files/content?path=${encodeURIComponent(newHtml.path)}`);
+            setFileContent(fc.content || '');
+          } catch {}
+        }
+      }
+    } catch {}
+  }
+
+  async function createSession() {
+    try {
+      const data = await api('/api/sessions', {
+        method: 'POST',
+        body: JSON.stringify({ model: config.defaultModel }),
+      });
+      setSessions(prev => [data.session, ...prev]);
+      setActiveId(data.session.id);
+      setSessionIdToUrl(data.session.id);
+      setMessages([]);
+      setFiles([]);
+      setSelectedFile(null);
+      setFileContent('');
+      setPreviewPath('');
+      showToast('新会话已创建');
+    } catch (e) { showToast(e.message); }
+  }
+
+  async function deleteSession(sid) {
+    if (!confirm('确认归档该会话？')) return;
+    try {
+      await api(`/api/sessions/${sid}`, { method: 'DELETE' });
+      setSessions(prev => prev.filter(s => s.id !== sid));
+      if (activeId === sid) {
+        const remaining = sessions.filter(s => s.id !== sid);
+        const nextId = remaining[0]?.id || null;
+        setActiveId(nextId);
+        setSessionIdToUrl(nextId);
+        setMessages([]); setFiles([]); setSelectedFile(null);
+      }
+      showToast('已归档');
+    } catch (e) { showToast(e.message); }
+  }
+
+  function selectSession(sid) {
+    setActiveId(sid);
+    setSessionIdToUrl(sid);
+    setSelectedFile(null); setFileContent(''); setPreviewPath('');
+    const s = sessions.find(x => x.id === sid);
+    if (s?.model) setCurrentModel(s.model);
+  }
+
+  // ── Pin / Collection / Rename / Drag handlers ──
+  async function handlePinToggle(sid) {
+    const s = sessions.find(x => x.id === sid);
+    if (!s) return;
+    const newPinned = !s.pinned;
+    setSessions(prev => prev.map(x => x.id === sid ? { ...x, pinned: newPinned } : x));
+    try {
+      await api(`/api/sessions/${sid}`, { method: 'PATCH', body: JSON.stringify({ pinned: newPinned }) });
+      await refreshSessions();
+    } catch (e) { showToast(e.message); await refreshSessions(); }
+  }
+
+  async function handleMoveToCollection(sid, collectionId) {
+    setSessions(prev => prev.map(x => x.id === sid ? { ...x, collectionId, pinned: false } : x));
+    try {
+      await api(`/api/sessions/${sid}`, { method: 'PATCH', body: JSON.stringify({ collection_id: collectionId, pinned: false }) });
+      await refreshSessions();
+      await loadCollections();
+    } catch (e) { showToast(e.message); await refreshSessions(); }
+  }
+
+  function handleRenameSession(sid) {
+    const s = sessions.find(x => x.id === sid);
+    setRenamingSessionId(sid);
+    setRenameValue(s?.title || '');
+  }
+
+  async function handleRenameSubmit(sid) {
+    const newTitle = renameValue.trim();
+    if (!newTitle) { setRenamingSessionId(null); return; }
+    setSessions(prev => prev.map(x => x.id === sid ? { ...x, title: newTitle } : x));
+    setRenamingSessionId(null);
+    try {
+      await api(`/api/sessions/${sid}`, { method: 'PATCH', body: JSON.stringify({ title: newTitle }) });
+    } catch (e) { showToast(e.message); }
+  }
+
+  async function handleCreateCollection(forSessionId) {
+    const name = prompt('请输入集合名称：');
+    if (!name || !name.trim()) return;
+    try {
+      const data = await api('/api/collections', { method: 'POST', body: JSON.stringify({ name: name.trim() }) });
+      await loadCollections();
+      showToast(`集合 "${data.collection.name}" 已创建`);
+      if (forSessionId) {
+        await handleMoveToCollection(forSessionId, data.collection.id);
+      }
+    } catch (e) { showToast(e.message); }
+  }
+
+  async function handleDeleteCollection(collId) {
+    if (!confirm('确认删除该集合？会话将移回"未分组"。')) return;
+    try {
+      await api(`/api/collections/${collId}`, { method: 'DELETE' });
+      await loadCollections();
+      await refreshSessions();
+      showToast('集合已删除');
+    } catch (e) { showToast(e.message); }
+  }
+
+  function handleRenameCollection(collId) {
+    const c = collections.find(x => x.id === collId);
+    setRenamingCollectionId(collId);
+    setCollectionRenameValue(c?.name || '');
+  }
+
+  async function handleCollectionRenameSubmit(collId) {
+    const name = collectionRenameValue.trim();
+    if (!name) { setRenamingCollectionId(null); return; }
+    setRenamingCollectionId(null);
+    try {
+      await api(`/api/collections/${collId}`, { method: 'PATCH', body: JSON.stringify({ name }) });
+      await loadCollections();
+    } catch (e) { showToast(e.message); }
+  }
+
+  async function handleExportSession(sid) {
+    try {
+      const data = await api(`/api/sessions/${sid}`);
+      const s = data.session;
+      const msgs = (s.messages || []).filter(m => m.role !== 'system');
+      const lines = msgs.map(m => {
+        const role = m.role === 'user' ? '用户' : '助手';
+        const time = m.created_at ? `[${new Date(m.created_at).toLocaleString('zh-CN')}]` : '';
+        return `${time} ${role}:\n${m.content}\n`;
+      });
+      const text = `# ${s.title || '会话记录'}\n导出时间: ${new Date().toLocaleString('zh-CN')}\n\n---\n\n${lines.join('\n---\n\n')}`;
+      const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${(s.title || 'session').replace(/[\\/:*?"<>|]/g, '_')}.md`;
+      a.click();
+      URL.revokeObjectURL(url);
+      showToast('对话记录已导出');
+    } catch (e) { showToast(e.message); }
+  }
+
+  function handleSessionMenuClick(e, sid) {
+    const btn = e.currentTarget;
+    const rect = btn.getBoundingClientRect();
+    setContextMenu({ x: rect.right + 4, y: rect.top, sessionId: sid });
+  }
+
+  function toggleCollapseCollection(collId) {
+    setCollapsedCollections(prev => {
+      const next = new Set(prev);
+      if (next.has(collId)) next.delete(collId); else next.add(collId);
+      return next;
+    });
+  }
+
+  // ── Drag & Drop ──
+  function handleDragStart(e, session) {
+    dragRef.current = { isDragging: true, draggedId: session.id };
+    suppressPollRef.current = true;
+    setDraggingSessionId(session.id);
+    e.dataTransfer.setData('text/plain', session.id);
+    e.dataTransfer.effectAllowed = 'move';
+  }
+
+  function handleDragEnd() {
+    dragRef.current = { isDragging: false, draggedId: null };
+    suppressPollRef.current = false;
+    setDraggingSessionId(null);
+    setDragOverTarget(null);
+    refreshSessions();
+  }
+
+  function handleDragOverSession(e, targetSession) {
+    e.preventDefault();
+    e.stopPropagation();
+    if (dragRef.current.draggedId === targetSession.id) return;
+    setDragOverTarget(targetSession.id);
+  }
+
+  function handleDropOnSession(e, targetSession) {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragOverTarget(null);
+    const draggedId = dragRef.current.draggedId;
+    if (!draggedId || draggedId === targetSession.id) return;
+    // Reorder: move dragged session to target's position
+    const currentList = [...sessions];
+    const dragIdx = currentList.findIndex(s => s.id === draggedId);
+    const targetIdx = currentList.findIndex(s => s.id === targetSession.id);
+    if (dragIdx < 0 || targetIdx < 0) return;
+    const [moved] = currentList.splice(dragIdx, 1);
+    // If moving to a pinned session's section, pin the dragged session too
+    if (targetSession.pinned && !moved.pinned) {
+      moved.pinned = true;
+      api(`/api/sessions/${draggedId}`, { method: 'PATCH', body: JSON.stringify({ pinned: true }) }).catch(() => {});
+    }
+    // If moving to a collection session, adopt its collection
+    if (targetSession.collectionId && moved.collectionId !== targetSession.collectionId) {
+      moved.collectionId = targetSession.collectionId;
+      api(`/api/sessions/${draggedId}`, { method: 'PATCH', body: JSON.stringify({ collection_id: targetSession.collectionId, pinned: false }) }).catch(() => {});
+    }
+    currentList.splice(targetIdx, 0, moved);
+    setSessions(currentList);
+    const orderedIds = currentList.filter(s => s.pinned === targetSession.pinned && s.collectionId === targetSession.collectionId).map(s => s.id);
+    api('/api/sessions/reorder', { method: 'PATCH', body: JSON.stringify({ orderedIds }) }).catch(() => {});
+  }
+
+  function handleDropOnSection(e, sectionType, collectionId) {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragOverTarget(null);
+    const draggedId = dragRef.current.draggedId;
+    if (!draggedId) return;
+    if (sectionType === 'pinned') {
+      handlePinToggle(draggedId);
+    } else if (sectionType === 'collection') {
+      handleMoveToCollection(draggedId, collectionId);
+    } else if (sectionType === 'uncategorized') {
+      const s = sessions.find(x => x.id === draggedId);
+      if (s && (s.pinned || s.collectionId)) {
+        setSessions(prev => prev.map(x => x.id === draggedId ? { ...x, pinned: false, collectionId: null } : x));
+        api(`/api/sessions/${draggedId}`, { method: 'PATCH', body: JSON.stringify({ pinned: false, collection_id: null }) }).catch(() => {});
+      }
+    }
+  }
+
+  // ── Session Sections (computed) ──
+  const sessionSections = useMemo(() => {
+    const q = sessionSearchValue.trim().toLowerCase();
+    const filtered = q ? sessions.filter(s =>
+      (s.title || '').toLowerCase().includes(q) || s.id.toLowerCase().includes(q)
+    ) : sessions;
+
+    const pinned = filtered.filter(s => s.pinned);
+    const uncategorized = filtered.filter(s => !s.pinned && !s.collectionId);
+    const collectionGroups = collections.map(c => ({
+      collection: c,
+      sessions: filtered.filter(s => !s.pinned && s.collectionId === c.id),
+    })).filter(g => g.sessions.length > 0 || !q);
+
+    return { pinned, collectionGroups, uncategorized };
+  }, [sessions, collections, sessionSearchValue]);
+
+  async function sendMessage() {
+    if (!activeId) return;
+    const text = inputValue.trim();
+    const hasFiles = pendingUploads.length > 0;
+    if (!text && !hasFiles) return;
+
+    setSending(true);
+    try {
+      let attachments = [];
+
+      // Upload pending files first
+      if (hasFiles) {
+        const formData = new FormData();
+        for (const pu of pendingUploads) formData.append('files', pu.file);
+        const result = await apiUpload(`/api/sessions/${activeId}/upload`, formData);
+        attachments = result.uploaded || [];
+        setPendingUploads([]);
+      }
+
+      await api(`/api/sessions/${activeId}/messages`, {
+        method: 'POST',
+        body: JSON.stringify({
+          content: text,
+          model: currentModel,
+          attachments: attachments.length > 0 ? attachments : undefined,
+        }),
+      });
+      setInputValue('');
+      setTimeout(() => pollSession(activeId, false), 300);
+    } catch (e) { showToast(e.message); }
+    setSending(false);
+  }
+
+  // Stage files into the chat input as pending (for sending with message)
+  function stageUploads(fileList) {
+    if (!fileList || fileList.length === 0) return;
+    const newFiles = Array.from(fileList).map(f => ({
+      file: f,
+      name: f.name,
+      size: f.size,
+      preview: isImage(f.name) ? URL.createObjectURL(f) : null,
+    }));
+    setPendingUploads(prev => [...prev, ...newFiles]);
+  }
+
+  function removePendingUpload(index) {
+    setPendingUploads(prev => {
+      const copy = [...prev];
+      if (copy[index]?.preview) URL.revokeObjectURL(copy[index].preview);
+      copy.splice(index, 1);
+      return copy;
+    });
+  }
+
+  // Reference a file path into the chat input
+  function referenceFile(item) {
+    const path = item.path || item.name || '';
+    const tag = `@${path} `;
+    const ta = textareaRef.current;
+    if (ta) {
+      const start = ta.selectionStart;
+      const end = ta.selectionEnd;
+      const before = inputValue.slice(0, start);
+      const after = inputValue.slice(end);
+      const sep = before.length > 0 && !before.endsWith(' ') && !before.endsWith('\n') ? ' ' : '';
+      const newVal = before + sep + tag + after;
+      setInputValue(newVal);
+      const cursorPos = start + sep.length + tag.length;
+      requestAnimationFrame(() => { ta.focus(); ta.setSelectionRange(cursorPos, cursorPos); });
+    } else {
+      const sep = inputValue.length > 0 && !inputValue.endsWith(' ') && !inputValue.endsWith('\n') ? ' ' : '';
+      setInputValue(prev => prev + sep + tag);
+    }
+    showToast(`已引用 ${getFileDisplayName(item)}`);
+  }
+
+  // Direct upload to sandbox (from sidebar)
+  async function uploadDirect(fileList) {
+    if (!activeId || !fileList || fileList.length === 0) return;
+    const formData = new FormData();
+    for (const f of fileList) formData.append('files', f);
+    try {
+      await apiUpload(`/api/sessions/${activeId}/upload`, formData);
+      showToast(`${fileList.length} 个文件已上传到沙箱`);
+      await loadFilesForSession(activeId, true);
+    } catch (e) { showToast(e.message); }
+  }
+
+  async function openFile(item) {
+    if (item.type !== 'file') return;
+    const displayName = getFileDisplayName(item);
+    setSelectedFile(item);
+    try {
+      if (isImage(displayName)) {
+        // Images -> preview tab (show directly)
+        setPreviewPath(item.path);
+        setFileContent('');
+        setRightTab('preview');
+      } else if (is3D(displayName)) {
+        // 3D models -> preview tab (Three.js viewer)
+        setPreviewPath(item.path);
+        setFileContent('');
+        setRightTab('preview');
+      } else if (isHtml(displayName)) {
+        // HTML -> preview tab (iframe)
+        setPreviewPath(item.path);
+        const data = await api(`/api/sessions/${activeId}/files/content?path=${encodeURIComponent(item.path)}`);
+        setFileContent(data.content || '');
+        setRightTab('preview');
+      } else if (isText(displayName)) {
+        // Text files -> preview tab (rendered text)
+        const data = await api(`/api/sessions/${activeId}/files/content?path=${encodeURIComponent(item.path)}`);
+        setFileContent(data.content || '');
+        setPreviewPath(item.path);
+        setRightTab('preview');
+      } else {
+        // Binary / unknown -> code tab (raw)
+        const data = await api(`/api/sessions/${activeId}/files/content?path=${encodeURIComponent(item.path)}`);
+        setFileContent(data.content || '');
+        setRightTab('code');
+      }
+    } catch (e) { showToast(e.message); }
+  }
+
+  function handleKeyDown(e) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
+    }
+  }
+
+  // Drag & drop - chat input stages files
+  function handleDragOver(e) { e.preventDefault(); setDropActive(true); }
+  function handleDragLeave(e) { e.preventDefault(); setDropActive(false); }
+  function handleDrop(e) {
+    e.preventDefault();
+    setDropActive(false);
+    if (e.dataTransfer.files.length > 0) stageUploads(e.dataTransfer.files);
+  }
+  // Sidebar drop uploads directly
+  function handleSidebarDrop(e) {
+    e.preventDefault();
+    setDropActive(false);
+    if (e.dataTransfer.files.length > 0) uploadDirect(e.dataTransfer.files);
+  }
+
+  const previewSrc = activeId && previewPath
+    ? `/api/sessions/${activeId}/preview?path=${encodeURIComponent(previewPath)}&token=${authToken}`
+    : '';
+  const selectedFileDisplayName = getFileDisplayName(selectedFile);
+
+  return (
+    <div className="app-layout">
+      {/* -- LEFT SIDEBAR -- */}
+      <div className="sidebar" style={{ width: leftResize.width }}>
+        <div className="sidebar-header">
+          <div className="sidebar-logo">
+            {Icons.logo}
+            <h1>Codex Lab</h1>
+            <span>v1.0</span>
+          </div>
+          <button className="new-session-btn" onClick={createSession}>
+            {Icons.plus} 新建会话
+          </button>
+        </div>
+        <div className="session-goto">
+          <input
+            value={sessionSearchValue}
+            onChange={(e) => setSessionSearchValue(e.target.value)}
+            placeholder="搜索会话（ID/标题）"
+          />
+          <button
+            className={`clear-filter${sessionSearchValue ? ' visible' : ''}`}
+            onClick={() => setSessionSearchValue('')}
+            title="清除筛选"
+          >&times;</button>
+        </div>
+        <div className="session-list">
+          {sessions.length === 0 && (
+            <div style={{ padding: '20px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '13px' }}>
+              暂无会话
+            </div>
+          )}
+
+          {/* Pinned section */}
+          {sessionSections.pinned.length > 0 && (
+            <>
+              <div
+                className={`section-header ${dragOverTarget === 'section:pinned' ? 'drop-target' : ''}`}
+                onDragOver={(e) => { e.preventDefault(); setDragOverTarget('section:pinned'); }}
+                onDragLeave={() => setDragOverTarget(null)}
+                onDrop={(e) => handleDropOnSection(e, 'pinned')}
+              >
+                📌 已置顶 <span className="section-count">{sessionSections.pinned.length}</span>
+              </div>
+              {sessionSections.pinned.map(s => (
+                <SessionItem
+                  key={s.id} session={s}
+                  isActive={s.id === activeId}
+                  isDragging={draggingSessionId === s.id}
+                  isDragOver={dragOverTarget === s.id}
+                  isRenaming={renamingSessionId === s.id}
+                  renameValue={renameValue}
+                  onRenameChange={(e) => setRenameValue(e.target.value)}
+                  onRenameSubmit={() => handleRenameSubmit(s.id)}
+                  onRenameCancel={() => setRenamingSessionId(null)}
+                  onSelect={() => selectSession(s.id)}
+                  onDelete={() => deleteSession(s.id)}
+                  onPinToggle={() => handlePinToggle(s.id)}
+                  onMenuClick={(e) => handleSessionMenuClick(e, s.id)}
+                  onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); setContextMenu({ x: e.clientX, y: e.clientY, sessionId: s.id }); }}
+                  onDragStart={(e) => handleDragStart(e, s)}
+                  onDragEnd={handleDragEnd}
+                  onDragOverItem={(e) => handleDragOverSession(e, s)}
+                  onDragOver={(e) => handleDropOnSession(e, s)}
+                />
+              ))}
+            </>
+          )}
+
+          {/* Collection groups */}
+          {sessionSections.collectionGroups.map(({ collection, sessions: collSessions }) => (
+            <div className="collection-section" key={collection.id}>
+              <div
+                className={`collection-header ${dragOverTarget === 'collection:' + collection.id ? 'drop-target' : ''}`}
+                onClick={() => { if (renamingCollectionId !== collection.id) toggleCollapseCollection(collection.id); }}
+                onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); setContextMenu({ x: e.clientX, y: e.clientY, collectionId: collection.id }); }}
+                onDragOver={(e) => { e.preventDefault(); setDragOverTarget('collection:' + collection.id); }}
+                onDragLeave={() => setDragOverTarget(null)}
+                onDrop={(e) => handleDropOnSection(e, 'collection', collection.id)}
+              >
+                <span className={`chevron ${!collapsedCollections.has(collection.id) ? 'expanded' : ''}`}>▶</span>
+                {renamingCollectionId === collection.id ? (
+                  <input
+                    className="coll-name-input"
+                    value={collectionRenameValue}
+                    onChange={(e) => setCollectionRenameValue(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') handleCollectionRenameSubmit(collection.id); else if (e.key === 'Escape') setRenamingCollectionId(null); e.stopPropagation(); }}
+                    onClick={(e) => e.stopPropagation()}
+                    onBlur={() => handleCollectionRenameSubmit(collection.id)}
+                    autoFocus
+                  />
+                ) : (
+                  <span className="coll-name">{collection.name}</span>
+                )}
+                <span className="coll-count">{collSessions.length}</span>
+                <button className="coll-menu-btn" onClick={(e) => { e.stopPropagation(); e.preventDefault(); const rect = e.currentTarget.getBoundingClientRect(); setContextMenu({ x: rect.right + 4, y: rect.top, collectionId: collection.id }); }} title="更多操作">⋮</button>
+              </div>
+              {!collapsedCollections.has(collection.id) && (
+                <div className="collection-body">
+                  {collSessions.map(s => (
+                    <SessionItem
+                      key={s.id} session={s}
+                      isActive={s.id === activeId}
+                      isDragging={draggingSessionId === s.id}
+                      isDragOver={dragOverTarget === s.id}
+                      isRenaming={renamingSessionId === s.id}
+                      renameValue={renameValue}
+                      onRenameChange={(e) => setRenameValue(e.target.value)}
+                      onRenameSubmit={() => handleRenameSubmit(s.id)}
+                      onRenameCancel={() => setRenamingSessionId(null)}
+                      onSelect={() => selectSession(s.id)}
+                      onDelete={() => deleteSession(s.id)}
+                      onPinToggle={() => handlePinToggle(s.id)}
+                      onMenuClick={(e) => handleSessionMenuClick(e, s.id)}
+                      onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); setContextMenu({ x: e.clientX, y: e.clientY, sessionId: s.id }); }}
+                      onDragStart={(e) => handleDragStart(e, s)}
+                      onDragEnd={handleDragEnd}
+                      onDragOverItem={(e) => handleDragOverSession(e, s)}
+                      onDragOver={(e) => handleDropOnSession(e, s)}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          ))}
+
+          {/* Uncategorized section */}
+          {sessionSections.uncategorized.length > 0 && (
+            <>
+              <div
+                className={`section-header ${dragOverTarget === 'section:uncategorized' ? 'drop-target' : ''}`}
+                onDragOver={(e) => { e.preventDefault(); setDragOverTarget('section:uncategorized'); }}
+                onDragLeave={() => setDragOverTarget(null)}
+                onDrop={(e) => handleDropOnSection(e, 'uncategorized')}
+              >
+                💬 会话 <span className="section-count">{sessionSections.uncategorized.length}</span>
+              </div>
+              {sessionSections.uncategorized.map(s => (
+                <SessionItem
+                  key={s.id} session={s}
+                  isActive={s.id === activeId}
+                  isDragging={draggingSessionId === s.id}
+                  isDragOver={dragOverTarget === s.id}
+                  isRenaming={renamingSessionId === s.id}
+                  renameValue={renameValue}
+                  onRenameChange={(e) => setRenameValue(e.target.value)}
+                  onRenameSubmit={() => handleRenameSubmit(s.id)}
+                  onRenameCancel={() => setRenamingSessionId(null)}
+                  onSelect={() => selectSession(s.id)}
+                  onDelete={() => deleteSession(s.id)}
+                  onPinToggle={() => handlePinToggle(s.id)}
+                  onMenuClick={(e) => handleSessionMenuClick(e, s.id)}
+                  onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); setContextMenu({ x: e.clientX, y: e.clientY, sessionId: s.id }); }}
+                  onDragStart={(e) => handleDragStart(e, s)}
+                  onDragEnd={handleDragEnd}
+                  onDragOverItem={(e) => handleDragOverSession(e, s)}
+                  onDragOver={(e) => handleDropOnSession(e, s)}
+                />
+              ))}
+            </>
+          )}
+
+          {/* No results message */}
+          {sessions.length > 0 && sessionSections.pinned.length === 0 && sessionSections.uncategorized.length === 0 && sessionSections.collectionGroups.every(g => g.sessions.length === 0) && (
+            <div style={{ padding: '20px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '13px' }}>
+              无匹配会话
+            </div>
+          )}
+
+          {/* Create collection button */}
+          {sessions.length > 0 && (
+            <button className="create-collection-btn" onClick={() => handleCreateCollection(null)}>
+              ➕ 新建集合
+            </button>
+          )}
+        </div>
+
+        {/* Context Menu Portal */}
+        {contextMenu && contextMenu.sessionId && (() => {
+          const s = sessions.find(x => x.id === contextMenu.sessionId);
+          return (
+            <ContextMenu
+              x={contextMenu.x} y={contextMenu.y}
+              sessionId={contextMenu.sessionId}
+              sessionPinned={s?.pinned || false}
+              collections={collections}
+              onClose={() => setContextMenu(null)}
+              onPin={handlePinToggle}
+              onMoveToCollection={handleMoveToCollection}
+              onRename={handleRenameSession}
+              onDelete={deleteSession}
+              onCreateCollection={handleCreateCollection}
+              onExport={handleExportSession}
+            />
+          );
+        })()}
+        {contextMenu && contextMenu.collectionId && (
+          <div>
+            <div className="context-menu-backdrop" onClick={() => setContextMenu(null)} onContextMenu={e => { e.preventDefault(); setContextMenu(null); }} />
+            <div className="context-menu" style={{ left: contextMenu.x, top: contextMenu.y }}>
+              <div className="context-menu-item" onClick={() => { handleRenameCollection(contextMenu.collectionId); setContextMenu(null); }}>
+                <span>✏️</span><span>重命名集合</span>
+              </div>
+              <div className="context-menu-item danger" onClick={() => { handleDeleteCollection(contextMenu.collectionId); setContextMenu(null); }}>
+                <span>🗑️</span><span>删除集合</span>
+              </div>
+            </div>
+          </div>
+        )}
+        <ConcurrencyBar active={activeProcessors} max={config.maxConcurrentSessions || 4} />
+        <div className="user-bar">
+          <div className="user-avatar">{(user.display_name || user.email || 'U').charAt(0).toUpperCase()}</div>
+          <div className="user-info">
+            <div className="user-name">{user.display_name || 'User'}</div>
+            <div className="user-email">{user.email}</div>
+          </div>
+          <button className="logout-btn" onClick={onLogout} title="退出登录">
+            {Icons.logout}
+          </button>
+        </div>
+      </div>
+
+      {/* Left resize handle */}
+      <div className="resize-handle" onMouseDown={leftResize.onMouseDown}></div>
+
+      {/* -- MAIN CHAT AREA -- */}
+      <div className="main-area">
+        <div className="chat-panel">
+          {activeId ? (
+            <>
+              <div className="chat-header">
+                <div className="title">
+                  <span className={`dot ${isProcessing ? 'busy' : 'idle'}`}></span>
+                  {activeSession?.title || '会话'}
+                </div>
+              </div>
+
+              <div className="chat-messages" ref={chatContainerRef} onScroll={handleChatScroll} style={{position:'relative'}}>
+                {messages.filter(m => m.role !== 'system').map((msg, i) => (
+                  <ChatMessage key={msg.id || i} msg={msg} />
+                ))}
+                <div ref={chatEndRef}></div>
+                {userScrolledUp && (
+                  <button className="scroll-bottom-btn" onClick={scrollToBottom}>
+                    ↓ 新消息
+                  </button>
+                )}
+              </div>
+
+              <div className="chat-input-area">
+                <div
+                  className="chat-input-wrap"
+                  onDragOver={handleDragOver}
+                  onDragLeave={handleDragLeave}
+                  onDrop={handleDrop}
+                  style={dropActive ? { borderColor: 'var(--accent)', background: 'rgba(59,130,246,0.03)' } : {}}
+                >
+                  {pendingUploads.length > 0 && (
+                    <div className="pending-uploads">
+                      {pendingUploads.map((pu, i) => (
+                        <div className="file-chip" key={i}>
+                          {pu.preview ? (
+                            <img className="chip-icon" src={pu.preview} alt="" />
+                          ) : (
+                            <span className="chip-icon" style={{background:'var(--bg-hover)',display:'flex',alignItems:'center',justifyContent:'center',borderRadius:4}}>{Icons.file}</span>
+                          )}
+                          <span className="chip-name">{pu.name}</span>
+                          <button className="chip-remove" onClick={() => removePendingUpload(i)} title="移除">×</button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <textarea
+                    ref={textareaRef}
+                    value={inputValue}
+                    onChange={e => setInputValue(e.target.value)}
+                    onKeyDown={handleKeyDown}
+                    placeholder={pendingUploads.length > 0 ? "添加说明后发送，或直接发送文件... Enter 发送" : "输入消息... Enter 发送，Shift+Enter 换行。拖拽文件到此处。"}
+                    rows={1}
+                  />
+                  <div className="chat-input-toolbar">
+                    <div className="actions" style={{display:'flex',alignItems:'center',gap:'8px',flex:1}}>
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        multiple
+                        style={{ display: 'none' }}
+                        onChange={e => { stageUploads(e.target.files); e.target.value = ''; }}
+                      />
+                      <button className="upload-btn" onClick={() => fileInputRef.current?.click()} style={{padding:'5px 8px'}} title="上传文件">
+                        {Icons.upload}
+                      </button>
+                      <div className="model-select-chip">
+                        <select value={currentModel} onChange={e => setCurrentModel(e.target.value)}>
+                          {MODEL_OPTIONS.map(m => <option key={m} value={m}>{m}</option>)}
+                        </select>
+                      </div>
+                      <span className="hints" style={{marginLeft:'auto'}}>
+                        {isProcessing ? '正在处理中..' : ''}
+                        {pendingUploads.length > 0 ? `${pendingUploads.length} 个文件待发送` : ''}
+                      </span>
+                    </div>
+                    <button className="send-circle" onClick={sendMessage} disabled={(!inputValue.trim() && pendingUploads.length === 0) || sending} title="发送">
+                      <svg viewBox="0 0 16 16" fill="none"><path d="M8 12V3M4 7l4-4 4 4" stroke="#09090b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </>
+          ) : (
+            <div className="empty-state">
+              {Icons.code}
+              <h3>Codex Lab</h3>
+              <p>你的 AI 编程助手平台。点击左侧「新建会话」开始与 Codex 对话，可以上传文件、预览生成的 HTML。</p>
+              <button className="send-btn primary" onClick={createSession} style={{ marginTop: '8px' }}>
+                {Icons.plus} 创建第一个会话
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Right resize handle */}
+        <div className="resize-handle" onMouseDown={rightResize.onMouseDown}></div>
+
+        {/* -- RIGHT PANEL -- */}
+        <div className="right-panel" style={{ width: rightResize.width }}>
+          <div className="panel-tabs">
+            <button className={`panel-tab ${rightTab === 'files' ? 'active' : ''}`} onClick={() => setRightTab('files')}>
+              文件 ({files.length})
+            </button>
+            <button className={`panel-tab ${rightTab === 'code' ? 'active' : ''}`} onClick={() => setRightTab('code')}>
+              代码
+            </button>
+            <button className={`panel-tab ${rightTab === 'preview' ? 'active' : ''}`} onClick={() => setRightTab('preview')}>
+              预览
+            </button>
+          </div>
+          <div className="panel-content">
+            {rightTab === 'files' && (
+              <div className="file-tree">
+                <div className="file-tree-header">
+                  <span style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Sandbox Files</span>
+                  <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                    <div className="view-toggle">
+                      <button className={fileViewMode === 'list' ? 'active' : ''} onClick={() => setFileViewMode('list')} title="列表">≡</button>
+                      <button className={fileViewMode === 'grid' ? 'active' : ''} onClick={() => setFileViewMode('grid')} title="网格">▦</button>
+                    </div>
+                    <button style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '2px' }} onClick={() => fileInputRef.current?.click()} title="上传文件">
+                      {Icons.upload}
+                    </button>
+                    <button style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '2px' }} onClick={() => activeId && loadFilesForSession(activeId)}>
+                      {Icons.refresh}
+                    </button>
+                  </div>
+                </div>
+
+                <div
+                  className={`dropzone ${dropActive ? 'dragover' : ''}`}
+                  onDragOver={handleDragOver}
+                  onDragLeave={handleDragLeave}
+                  onDrop={handleSidebarDrop}
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  {Icons.upload}<br/>
+                  拖拽文件到此处 或 点击上传
+                </div>
+
+                {files.length === 0 ? (
+                  <div className="file-tree-empty">沙箱中暂无文件<br/><span style={{fontSize:'11px'}}>让 Codex 生成一些文件试试</span></div>
+                ) : fileViewMode === 'list' ? (
+                  files.map((item, i) => (
+                    <FileTreeItem
+                      key={i}
+                      item={item}
+                      isActive={selectedFile?.path === item.path}
+                      onClick={() => openFile(item)}
+                      onReference={referenceFile}
+                    />
+                  ))
+                ) : (
+                  <div className="file-grid">
+                    {files.filter(f => f.type === 'file').map((item, i) => {
+                      const displayName = getFileDisplayName(item);
+                      const imgSrc = isImage(displayName) && activeId
+                        ? `/api/sessions/${activeId}/preview?path=${encodeURIComponent(item.path)}&token=${authToken}`
+                        : null;
+                      const size = item.size > 1024 ? `${(item.size/1024).toFixed(1)}KB` : `${item.size}B`;
+                      return (
+                        <div
+                          key={i}
+                          className={`file-grid-item ${selectedFile?.path === item.path ? 'active' : ''}`}
+                          onClick={() => openFile(item)}
+                        >
+                          <button className="ref-btn" onClick={(e) => { e.stopPropagation(); referenceFile(item); }} title="引用到输入框">@</button>
+                          <div className="grid-thumb">
+                            {imgSrc ? <img src={imgSrc} alt={displayName} /> : (
+                              <span>{is3D(displayName) ? '🧊' : isHtml(displayName) ? '🌐' : isText(displayName) ? '📄' : '📦'}</span>
+                            )}
+                          </div>
+                          <span className="grid-name" title={displayName}>{displayName}</span>
+                          <span className="grid-size">{size}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {rightTab === 'code' && (
+              <div className="code-viewer">
+                {selectedFile ? (
+                  <>
+                    <div className="code-viewer-header">
+                      <span className="filename">{selectedFileDisplayName}</span>
+                      <div style={{display:'flex',gap:'4px'}}>
+                        {isPreviewable(selectedFileDisplayName) && (
+                          <button className="send-btn secondary" style={{padding:'4px 8px',fontSize:'11px'}} onClick={() => { setPreviewPath(selectedFile.path); setRightTab('preview'); }}>
+                            {Icons.eye} 预览
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                    <div className="code-viewer-body">
+                      <pre>{fileContent}</pre>
+                    </div>
+                  </>
+                ) : (
+                  <div className="code-viewer-empty">选择左侧文件查看代码</div>
+                )}
+              </div>
+            )}
+
+            {rightTab === 'preview' && (
+              <div className="preview-area">
+                {previewPath && activeId ? (
+                  <>
+                    <div className="preview-toolbar">
+                      <span style={{color:'var(--green)',fontSize:'11px'}}>{is3D(selectedFileDisplayName) ? '3D' : isHtml(selectedFileDisplayName) ? 'LIVE' : isImage(selectedFileDisplayName) ? 'IMG' : 'TEXT'}</span>
+                      <span className="url-bar">{previewPath}</span>
+                      {!isImage(selectedFileDisplayName) && !is3D(selectedFileDisplayName) && isText(selectedFileDisplayName) && (
+                        <button className="send-btn secondary" style={{padding:'4px 8px',fontSize:'11px'}} onClick={() => setRightTab('code')}>
+                          {'</>'} 代码
+                        </button>
+                      )}
+                    </div>
+                    {isImage(selectedFileDisplayName) ? (
+                      <div className="preview-image-wrap">
+                        <img src={previewSrc} alt={selectedFileDisplayName} />
+                      </div>
+                    ) : is3D(selectedFileDisplayName) ? (
+                      <div className="preview-frame-wrap">
+                        <iframe src={`/3d-viewer.html?url=${encodeURIComponent(previewSrc)}&name=${encodeURIComponent(selectedFileDisplayName)}`} title="3D Viewer" sandbox="allow-scripts allow-same-origin"></iframe>
+                      </div>
+                    ) : isHtml(selectedFileDisplayName) ? (
+                      <div className="preview-frame-wrap">
+                        <iframe src={previewSrc} title="Preview" sandbox="allow-scripts allow-same-origin"></iframe>
+                      </div>
+                    ) : (
+                      <div className="preview-text-wrap">{fileContent}</div>
+                    )}
+                  </>
+                ) : (
+                  <div className="preview-empty">
+                    {Icons.eye}
+                    <span>点击文件可预览</span>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {toast && <Toast message={toast} onClose={() => setToast(null)} />}
+    </div>
+  );
+}
+
+/* ====== ROOT APP ====== */
+function RootApp() {
+  const [user, setUser] = useState(null);
+  const [checking, setChecking] = useState(true);
+
+  useEffect(() => {
+    if (authToken) {
+      api('/api/auth/me')
+        .then(data => { setUser(data.user); setChecking(false); })
+        .catch(() => { setAuth(''); setChecking(false); });
+    } else {
+      setChecking(false);
+    }
+  }, []);
+
+  if (checking) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', background: 'var(--bg-deep)' }}>
+        <span className="spinner" style={{ width: 32, height: 32, borderWidth: 3 }}></span>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <AuthPage onLogin={(u) => setUser(u)} />;
+  }
+
+  return <MainApp user={user} onLogout={() => { setAuth(''); setUser(null); }} />;
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<RootApp />);
+</script>
+</body>
+</html>

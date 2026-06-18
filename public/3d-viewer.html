@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>3D Viewer</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { width: 100%; height: 100%; overflow: hidden; background: #1a1a2e; font-family: -apple-system, 'Segoe UI', sans-serif; }
+canvas { display: block; }
+#loading { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 12px; color: #a1a1aa; font-size: 14px; z-index: 10; }
+#loading .spinner { width: 32px; height: 32px; border: 3px solid #333; border-top-color: #3b82f6; border-radius: 50%; animation: spin 0.6s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+#error { position: fixed; inset: 0; display: none; align-items: center; justify-content: center; flex-direction: column; gap: 12px; color: #ef4444; font-size: 14px; z-index: 10; padding: 20px; text-align: center; }
+#info { position: fixed; bottom: 12px; left: 12px; color: #71717a; font-size: 11px; z-index: 5; pointer-events: none; }
+#controls { position: fixed; top: 12px; right: 12px; display: flex; gap: 6px; z-index: 5; }
+#controls button { background: rgba(24,24,27,0.8); border: 1px solid #27272a; color: #a1a1aa; padding: 6px 10px; border-radius: 6px; font-size: 12px; cursor: pointer; backdrop-filter: blur(8px); }
+#controls button:hover { background: rgba(39,39,42,0.9); color: #fafafa; }
+#controls button.active { border-color: #3b82f6; color: #3b82f6; }
+</style>
+</head>
+<body>
+<div id="loading"><div class="spinner"></div><span>加载模型中...</span></div>
+<div id="error"></div>
+<div id="info"></div>
+<div id="controls">
+  <button id="btn-wireframe" title="线框模式">Wireframe</button>
+  <button id="btn-reset" title="重置视角">Reset</button>
+</div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+  }
+}
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { STLLoader } from 'three/addons/loaders/STLLoader.js';
+import { OBJLoader } from 'three/addons/loaders/OBJLoader.js';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { PLYLoader } from 'three/addons/loaders/PLYLoader.js';
+
+const params = new URLSearchParams(location.search);
+const modelUrl = params.get('url');
+const fileName = params.get('name') || 'model';
+
+if (!modelUrl) {
+  showError('缺少模型 URL 参数');
+} else {
+  init(modelUrl, fileName);
+}
+
+function showError(msg) {
+  document.getElementById('loading').style.display = 'none';
+  const el = document.getElementById('error');
+  el.style.display = 'flex';
+  el.textContent = msg;
+}
+
+function hideLoading() {
+  document.getElementById('loading').style.display = 'none';
+}
+
+function init(url, name) {
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x1a1a2e);
+
+  const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.01, 10000);
+  const renderer = new THREE.WebGLRenderer({ antialias: true });
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setPixelRatio(window.devicePixelRatio);
+  renderer.outputColorSpace = THREE.SRGBColorSpace;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.2;
+  document.body.appendChild(renderer.domElement);
+
+  // Controls
+  const controls = new OrbitControls(camera, renderer.domElement);
+  controls.enableDamping = true;
+  controls.dampingFactor = 0.08;
+  controls.rotateSpeed = 0.8;
+  controls.zoomSpeed = 1.2;
+
+  // Lighting
+  const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+  scene.add(ambientLight);
+
+  const dirLight1 = new THREE.DirectionalLight(0xffffff, 1.5);
+  dirLight1.position.set(5, 10, 7);
+  scene.add(dirLight1);
+
+  const dirLight2 = new THREE.DirectionalLight(0x8888ff, 0.6);
+  dirLight2.position.set(-5, -3, -5);
+  scene.add(dirLight2);
+
+  const hemiLight = new THREE.HemisphereLight(0x4488ff, 0x222244, 0.4);
+  scene.add(hemiLight);
+
+  // Grid helper
+  const gridHelper = new THREE.GridHelper(20, 20, 0x333355, 0x222244);
+  scene.add(gridHelper);
+
+  let modelObject = null;
+  let wireframeMode = false;
+
+  // Detect format from extension
+  const ext = (name.split('.').pop() || '').toLowerCase();
+
+  function fitCamera(object) {
+    const box = new THREE.Box3().setFromObject(object);
+    const size = box.getSize(new THREE.Vector3());
+    const center = box.getCenter(new THREE.Vector3());
+    const maxDim = Math.max(size.x, size.y, size.z);
+    const fov = camera.fov * (Math.PI / 180);
+    let cameraZ = maxDim / (2 * Math.tan(fov / 2));
+    cameraZ *= 2.0;
+
+    camera.position.set(center.x + cameraZ * 0.5, center.y + cameraZ * 0.3, center.z + cameraZ);
+    controls.target.copy(center);
+    controls.update();
+
+    // Update grid
+    gridHelper.position.y = box.min.y;
+    const gridSize = Math.max(size.x, size.z) * 2;
+    gridHelper.scale.set(gridSize / 20, 1, gridSize / 20);
+
+    // Info
+    document.getElementById('info').textContent =
+      `${name}  |  ${size.x.toFixed(2)} x ${size.y.toFixed(2)} x ${size.z.toFixed(2)}`;
+  }
+
+  function onLoad(object) {
+    hideLoading();
+    modelObject = object;
+    scene.add(object);
+    fitCamera(object);
+  }
+
+  function onError(err) {
+    showError('模型加载失败: ' + (err.message || err));
+  }
+
+  // Load based on format
+  if (ext === 'stl') {
+    new STLLoader().load(url, (geometry) => {
+      geometry.computeVertexNormals();
+      const material = new THREE.MeshStandardMaterial({
+        color: 0x7c8cf8, metalness: 0.2, roughness: 0.6,
+      });
+      const mesh = new THREE.Mesh(geometry, material);
+      onLoad(mesh);
+    }, undefined, onError);
+
+  } else if (ext === 'obj') {
+    new OBJLoader().load(url, (group) => {
+      group.traverse((child) => {
+        if (child.isMesh) {
+          child.material = new THREE.MeshStandardMaterial({
+            color: 0x7c8cf8, metalness: 0.2, roughness: 0.6,
+          });
+        }
+      });
+      onLoad(group);
+    }, undefined, onError);
+
+  } else if (ext === 'gltf' || ext === 'glb') {
+    new GLTFLoader().load(url, (gltf) => {
+      onLoad(gltf.scene);
+    }, undefined, onError);
+
+  } else if (ext === 'ply') {
+    new PLYLoader().load(url, (geometry) => {
+      geometry.computeVertexNormals();
+      const material = new THREE.MeshStandardMaterial({
+        color: 0x7c8cf8, metalness: 0.2, roughness: 0.6,
+        vertexColors: geometry.hasAttribute('color'),
+      });
+      const mesh = new THREE.Mesh(geometry, material);
+      onLoad(mesh);
+    }, undefined, onError);
+
+  } else {
+    showError('不支持的 3D 格式: .' + ext + '\n支持: .stl, .obj, .gltf, .glb, .ply');
+  }
+
+  // Wireframe toggle
+  document.getElementById('btn-wireframe').addEventListener('click', () => {
+    wireframeMode = !wireframeMode;
+    document.getElementById('btn-wireframe').classList.toggle('active', wireframeMode);
+    if (modelObject) {
+      modelObject.traverse((child) => {
+        if (child.isMesh && child.material) {
+          if (Array.isArray(child.material)) {
+            child.material.forEach(m => m.wireframe = wireframeMode);
+          } else {
+            child.material.wireframe = wireframeMode;
+          }
+        }
+      });
+    }
+  });
+
+  // Reset camera
+  document.getElementById('btn-reset').addEventListener('click', () => {
+    if (modelObject) fitCamera(modelObject);
+  });
+
+  // Animation loop
+  function animate() {
+    requestAnimationFrame(animate);
+    controls.update();
+    renderer.render(scene, camera);
+  }
+  animate();
+
+  // Resize
+  window.addEventListener('resize', () => {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+  });
+}
+</script>
+</body>
+</html>
