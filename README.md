@@ -1,5 +1,7 @@
 # Codex Lab
 
+> **English** | [中文](./README.zh-CN.md)
+
 A self-hosted AI coding sandbox with isolated session environments, live file preview, and concurrent task execution. Built with Node.js, React, and PostgreSQL.
 
 ![Node.js](https://img.shields.io/badge/Node.js-18%2B-green)
