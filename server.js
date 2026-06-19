@@ -18,12 +18,40 @@ const MAX_CONCURRENT_SESSIONS = Number(process.env.MAX_CONCURRENT_SESSIONS || 4)
 const MAX_SESSION_HISTORY = 160;
 const MAX_FILE_BYTES = 2 * 1024 * 1024;
 const UPLOAD_MAX = 20 * 1024 * 1024; // 20MB per file
+const CODEX_TASK_TIMEOUT_MS = Number(process.env.CODEX_TASK_TIMEOUT_MS || 600000);
+const CODEX_SPAWN_RETRIES = Number(process.env.CODEX_SPAWN_RETRIES || 6);
+const CODEX_SPAWN_RETRY_BASE_MS = Number(process.env.CODEX_SPAWN_RETRY_BASE_MS || 2000);
 
 // Codex CLI binary
 const CODEX_INSTALL_BASE = path.join(process.env.LOCALAPPDATA || '', 'OpenAI', 'Codex', 'bin');
 let CODEX_BIN = '';
 const DEFAULT_MODEL = process.env.CODEX_MODEL || 'gpt-5.3-codex-spark';
+const DEFAULT_AVAILABLE_MODELS = ['gpt-5.3-codex-spark', 'gpt-5.5'];
+const AVAILABLE_MODELS = Array.from(new Set([
+  DEFAULT_MODEL,
+  ...(process.env.CODEX_MODELS
+    ? process.env.CODEX_MODELS.split(',').map((model) => model.trim()).filter(Boolean)
+    : DEFAULT_AVAILABLE_MODELS),
+]));
+const CODEX_SERVICE_TIER = process.env.CODEX_SERVICE_TIER || 'fast';
 const FILE_LIST_LIMIT = 4000;
+const CODEX_RUNTIME_HOME = path.resolve(process.env.CODEX_RUNTIME_HOME || path.join(__dirname, '.codex-runtime-home'));
+const USER_CODEX_HOME = path.resolve(process.env.USER_CODEX_HOME || path.join(process.env.HOME || '', '.codex'));
+const CODEX_GLOBAL_ARGS = [
+  '--disable', 'plugins',
+  '--disable', 'apps',
+  '--disable', 'browser_use',
+  '--disable', 'browser_use_external',
+  '--disable', 'computer_use',
+  '--disable', 'multi_agent',
+  '--disable', 'shell_snapshot',
+  '--disable', 'tool_search',
+  '--disable', 'workspace_dependencies',
+  '-c', `service_tier="${CODEX_SERVICE_TIER}"`,
+  '-c', 'plugins={}',
+  '-c', 'marketplaces={}',
+  '-c', 'mcp_servers={}',
+];
 
 // ── Middleware ──
 app.use(cors());
@@ -145,10 +173,84 @@ async function detectCodexBin() {
   return CODEX_BIN;
 }
 
+async function ensureCodexRuntimeHome() {
+  await fsp.mkdir(CODEX_RUNTIME_HOME, { recursive: true });
+
+  const sourceAuth = path.join(USER_CODEX_HOME, 'auth.json');
+  const runtimeAuth = path.join(CODEX_RUNTIME_HOME, 'auth.json');
+  try {
+    await fsp.access(runtimeAuth);
+  } catch {
+    await fsp.symlink(sourceAuth, runtimeAuth);
+  }
+
+  const configPath = path.join(CODEX_RUNTIME_HOME, 'config.toml');
+  const config = [
+    'approval_policy = "never"',
+    'sandbox_mode = "danger-full-access"',
+    'personality = "pragmatic"',
+    `model = "${DEFAULT_MODEL}"`,
+    'model_reasoning_effort = "xhigh"',
+    `service_tier = "${CODEX_SERVICE_TIER}"`,
+    '',
+    '[features]',
+    'plugins = false',
+    'apps = false',
+    'browser_use = false',
+    'browser_use_external = false',
+    'computer_use = false',
+    'multi_agent = false',
+    'shell_snapshot = false',
+    'tool_search = false',
+    'workspace_dependencies = false',
+    '',
+  ].join('\n');
+  await fsp.writeFile(configPath, config, 'utf8');
+
+  return CODEX_RUNTIME_HOME;
+}
+
+function delay(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function spawnWithRetry(cmd, args, options) {
+  for (let attempt = 0; attempt <= CODEX_SPAWN_RETRIES; attempt += 1) {
+    try {
+      const child = spawn(cmd, args, options);
+      await new Promise((resolve, reject) => {
+        const onSpawn = () => {
+          child.off('error', onError);
+          resolve();
+        };
+        const onError = (err) => {
+          child.off('spawn', onSpawn);
+          reject(err);
+        };
+        child.once('spawn', onSpawn);
+        child.once('error', onError);
+      });
+      if (attempt > 0) {
+        console.log(`[codex-lab] spawn recovered after ${attempt} retry`);
+      }
+      return child;
+    } catch (err) {
+      if (err.code !== 'EAGAIN' || attempt >= CODEX_SPAWN_RETRIES) {
+        throw err;
+      }
+      const waitMs = CODEX_SPAWN_RETRY_BASE_MS * (attempt + 1);
+      console.error(`[codex-lab] spawn EAGAIN, retry ${attempt + 1}/${CODEX_SPAWN_RETRIES} in ${waitMs}ms`);
+      await delay(waitMs);
+    }
+  }
+  throw new Error('unreachable spawn retry state');
+}
+
 // ── Call Codex CLI (uses native thread/resume for multi-turn) ──
 function callCodexCLI(sandboxDir, model, threadId, userMessage, imagePaths) {
   return new Promise(async (resolve, reject) => {
     const bin = await detectCodexBin();
+    const codexHome = await ensureCodexRuntimeHome();
     const isNpx = bin.startsWith('npx');
     const resolvedModel = model || DEFAULT_MODEL;
 
@@ -156,9 +258,9 @@ function callCodexCLI(sandboxDir, model, threadId, userMessage, imagePaths) {
     if (threadId) {
       // Resume existing thread — Codex handles full conversation context
       args = isNpx
-        ? ['@openai/codex', 'exec', 'resume', threadId, '--json',
+        ? ['@openai/codex', ...CODEX_GLOBAL_ARGS, 'exec', 'resume', threadId, '--json',
            '--skip-git-repo-check', '-m', resolvedModel]
-        : ['exec', 'resume', threadId, '--json',
+        : [...CODEX_GLOBAL_ARGS, 'exec', 'resume', threadId, '--json',
            '--skip-git-repo-check', '-m', resolvedModel];
       // Add image flags for resume too
       if (imagePaths && imagePaths.length > 0) {
@@ -170,9 +272,9 @@ function callCodexCLI(sandboxDir, model, threadId, userMessage, imagePaths) {
     } else {
       // First message — create new thread (no --ephemeral so it persists for resume)
       args = isNpx
-        ? ['@openai/codex', 'exec', '--json', '--skip-git-repo-check',
+        ? ['@openai/codex', ...CODEX_GLOBAL_ARGS, 'exec', '--json', '--skip-git-repo-check',
            '-s', 'danger-full-access', '-C', sandboxDir, '-m', resolvedModel]
-        : ['exec', '--json', '--skip-git-repo-check',
+        : [...CODEX_GLOBAL_ARGS, 'exec', '--json', '--skip-git-repo-check',
            '-s', 'danger-full-access', '-C', sandboxDir, '-m', resolvedModel];
       // Add image flags
       if (imagePaths && imagePaths.length > 0) {
@@ -184,12 +286,19 @@ function callCodexCLI(sandboxDir, model, threadId, userMessage, imagePaths) {
     }
 
     const cmd = isNpx ? 'npx' : bin;
-    const child = spawn(cmd, args, {
-      cwd: sandboxDir,
-      windowsHide: true,
-      env: { ...process.env, NO_COLOR: '1' },
-      stdio: ['ignore', 'pipe', 'pipe'],
-    });
+    console.log(`[codex-lab] spawning ${cmd} ${args.slice(0, -1).join(' ')} <prompt>`);
+    let child;
+    try {
+      child = await spawnWithRetry(cmd, args, {
+        cwd: sandboxDir,
+        windowsHide: true,
+        env: { ...process.env, CODEX_HOME: codexHome, NO_COLOR: '1', SHELL: '/bin/sh' },
+        stdio: ['ignore', 'pipe', 'pipe'],
+      });
+    } catch (err) {
+      reject(new Error(`Codex CLI 启动失败: ${err.message}`));
+      return;
+    }
 
     let stdout = '';
     let stderr = '';
@@ -206,12 +315,16 @@ function callCodexCLI(sandboxDir, model, threadId, userMessage, imagePaths) {
       }
     });
 
-    child.stderr.on('data', (chunk) => { stderr += chunk.toString(); });
+    child.stderr.on('data', (chunk) => {
+      const text = chunk.toString();
+      stderr += text;
+      console.error(`[codex-cli] ${text.trim()}`);
+    });
 
     const timeout = setTimeout(() => {
       child.kill();
-      reject(new Error('Codex CLI 超时 (180s)'));
-    }, 180000);
+      reject(new Error(`Codex CLI 超时 (${Math.round(CODEX_TASK_TIMEOUT_MS / 1000)}s)`));
+    }, CODEX_TASK_TIMEOUT_MS);
 
     child.on('close', (code) => {
       clearTimeout(timeout);
@@ -478,6 +591,7 @@ app.get('/api/config', async (req, res) => {
   const bin = await detectCodexBin();
   res.json({
     defaultModel: DEFAULT_MODEL,
+    models: AVAILABLE_MODELS,
     codexBin: bin,
     maxConcurrentSessions: MAX_CONCURRENT_SESSIONS,
   });

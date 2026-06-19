@@ -1,5 +1,7 @@
 node_modules
 runtime-sandboxes
+.codex-runtime-home
 *.log
 nul
 .env
+.DS_Store

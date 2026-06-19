@@ -19,10 +19,13 @@ A self-hosted AI coding sandbox with isolated session environments, live file pr
 
 ## Quick Start
 
+For a production-style setup, see [DEPLOYMENT.md](./DEPLOYMENT.md).
+
 ### Prerequisites
 
 - Node.js 18+
 - PostgreSQL 14+
+- Codex CLI installed and logged in on the host
 
 ### 1. Clone and install
 
@@ -49,9 +52,17 @@ cp .env.example .env
 | `PGPASSWORD` | **Yes** | — | Database password |
 | `JWT_SECRET` | **Yes** | — | Secret key for JWT signing (use a long random string) |
 | `PORT` | No | `8765` | HTTP server port |
-| `MAX_CONCURRENT_SESSIONS` | No | `4` | Max sessions that can run simultaneously |
+| `MAX_CONCURRENT_SESSIONS` | No | `1` | Max sessions that can run simultaneously |
+| `CODEX_BIN` | No | auto-detect / `npx` | Codex CLI binary path |
 | `CODEX_MODEL` | No | `gpt-5.3-codex-spark` | Default model name |
-| `CODEX_RUNTIME_BASE` | No | — | Runtime API base URL (for local model servers) |
+| `CODEX_MODELS` | No | `gpt-5.3-codex-spark,gpt-5.5` | Comma-separated model list exposed in the UI |
+| `CODEX_SERVICE_TIER` | No | `fast` | Codex service tier passed to the CLI |
+| `CODEX_TASK_TIMEOUT_MS` | No | `600000` | Per-message Codex task timeout |
+| `CODEX_SPAWN_RETRIES` | No | `6` | Retries for transient `EAGAIN` spawn failures |
+| `CODEX_SPAWN_RETRY_BASE_MS` | No | `2000` | Base backoff for spawn retries |
+| `CODEX_WORKSPACE_ROOT` | No | `./runtime-sandboxes` | Directory for isolated session workspaces |
+| `CODEX_RUNTIME_HOME` | No | `./.codex-runtime-home` | Minimal Codex home used by runtime sessions |
+| `USER_CODEX_HOME` | No | `$HOME/.codex` | Host Codex home used for `auth.json` |
 
 ### 3. Create the database
 

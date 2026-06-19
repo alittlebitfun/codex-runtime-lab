@@ -729,7 +729,7 @@ function FileTreeItem({ item, isActive, onClick, onReference }) {
 function MainApp({ user, onLogout }) {
   const [sessions, setSessions] = useState([]);
   const [activeId, setActiveId] = useState(null);
-  const [config, setConfig] = useState({ defaultModel: 'gpt-5.3-codex-spark', maxConcurrentSessions: 4 });
+  const [config, setConfig] = useState({ defaultModel: 'gpt-5.3-codex-spark', models: ['gpt-5.3-codex-spark', 'gpt-5.5'], maxConcurrentSessions: 1 });
   const [messages, setMessages] = useState([]);
   const [files, setFiles] = useState([]);
   const [inputValue, setInputValue] = useState('');
@@ -759,7 +759,7 @@ function MainApp({ user, onLogout }) {
   const suppressPollRef = useRef(false);
   const initialLoadRef = useRef(true);
 
-  const MODEL_OPTIONS = ['gpt-5.3-codex-spark', 'gpt-5.3-codex', 'o3', 'o4-mini'];
+  const MODEL_OPTIONS = config.models?.length ? config.models : ['gpt-5.3-codex-spark', 'gpt-5.5'];
 
   // File type detection
   const IMAGE_EXT = /\.(png|jpe?g|gif|webp|svg|bmp|ico)$/i;
@@ -845,6 +845,7 @@ function MainApp({ user, onLogout }) {
       try {
         const cfg = await api('/api/config');
         setConfig(cfg);
+        if (cfg.defaultModel) setCurrentModel(cfg.defaultModel);
       } catch {}
       await refreshSessions();
       await loadCollections();
