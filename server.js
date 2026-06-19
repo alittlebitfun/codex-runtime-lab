@@ -674,15 +674,15 @@ app.post('/api/sessions', async (req, res) => {
     const resolvedTitle = (title || `会话 ${new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}`).slice(0, 255);
     const resolvedModel = (model || DEFAULT_MODEL).slice(0, 100);
 
-    const { rows: orderRows } = await pool.query(
-      `SELECT COALESCE(MAX(sort_order), 0) + 1 AS next_order FROM sessions WHERE user_id = $1 AND collection_id IS NULL`,
+    // New session goes to top (sort_order=0), shift existing uncategorized down
+    await pool.query(
+      `UPDATE sessions SET sort_order = sort_order + 1 WHERE user_id = $1 AND pinned = false AND collection_id IS NULL`,
       [req.user.id]
     );
-    const nextOrder = orderRows[0].next_order;
 
     const { rows } = await pool.query(
-      `INSERT INTO sessions (id, user_id, title, model, sandbox_dir, sort_order) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
-      [id, req.user.id, resolvedTitle, resolvedModel, dir, nextOrder]
+      `INSERT INTO sessions (id, user_id, title, model, sandbox_dir, sort_order) VALUES ($1, $2, $3, $4, $5, 0) RETURNING *`,
+      [id, req.user.id, resolvedTitle, resolvedModel, dir]
     );
 
     const s = rows[0];
