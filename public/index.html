@@ -318,6 +318,72 @@ code.inline { background: var(--bg-card); padding: 2px 6px; border-radius: 4px; 
   .sidebar { display: none; }
   .right-panel { display: none; }
 }
+
+/* ====== LANDING PAGE ====== */
+.landing { min-height: 100vh; background: var(--bg-deep); overflow-y: auto; }
+.landing-nav { display: flex; align-items: center; justify-content: space-between; padding: 20px 40px; max-width: 1200px; margin: 0 auto; }
+.landing-nav .brand { display: flex; align-items: center; gap: 10px; font-size: 16px; font-weight: 700; }
+.landing-nav .brand svg { width: 28px; height: 28px; }
+.landing-nav .nav-links { display: flex; gap: 12px; }
+.landing-nav .nav-links a { color: var(--text-secondary); text-decoration: none; font-size: 13px; font-weight: 500; padding: 6px 14px; border-radius: var(--radius); transition: all 0.15s; }
+.landing-nav .nav-links a:hover { color: var(--text); background: var(--bg-hover); }
+.landing-nav .nav-links a.primary { background: var(--accent); color: white; }
+.landing-nav .nav-links a.primary:hover { background: var(--accent-hover); }
+.landing-hero { max-width: 1200px; margin: 0 auto; padding: 80px 40px 60px; display: grid; grid-template-columns: 1fr 1fr; gap: 60px; align-items: center; }
+.landing-hero h1 { font-size: 42px; font-weight: 800; line-height: 1.15; margin-bottom: 20px; background: linear-gradient(135deg, #fff 0%, #a5b4fc 50%, #818cf8 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+.landing-hero .lead { font-size: 17px; color: var(--text-secondary); line-height: 1.7; margin-bottom: 32px; max-width: 500px; }
+.landing-hero .cta-group { display: flex; gap: 12px; flex-wrap: wrap; }
+.landing-hero .cta-group a { padding: 12px 24px; border-radius: var(--radius); font-size: 15px; font-weight: 600; text-decoration: none; transition: all 0.15s; cursor: pointer; }
+.landing-hero .cta-primary { background: var(--accent); color: white; }
+.landing-hero .cta-primary:hover { background: var(--accent-hover); transform: translateY(-1px); }
+.landing-hero .cta-secondary { background: var(--bg-card); color: var(--text); border: 1px solid var(--border); }
+.landing-hero .cta-secondary:hover { border-color: var(--border-accent); }
+.landing-demo { background: var(--bg-panel); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,0.4); }
+.landing-demo-bar { display: flex; gap: 6px; padding: 12px 16px; background: var(--bg-card); border-bottom: 1px solid var(--border); }
+.landing-demo-bar span { width: 10px; height: 10px; border-radius: 50%; }
+.landing-demo-bar span:nth-child(1) { background: #ef4444; }
+.landing-demo-bar span:nth-child(2) { background: #eab308; }
+.landing-demo-bar span:nth-child(3) { background: #22c55e; }
+.landing-demo-body { padding: 20px; font-family: var(--mono); font-size: 13px; line-height: 1.7; color: var(--text-secondary); }
+.landing-demo-body .demo-line { margin-bottom: 6px; }
+.landing-demo-body .demo-prompt { color: var(--accent); }
+.landing-demo-body .demo-reply { color: var(--text); }
+.landing-demo-body .demo-code { color: var(--purple); }
+.landing-demo-body .demo-cursor { display: inline-block; width: 8px; height: 16px; background: var(--accent); animation: blink 1s infinite; vertical-align: text-bottom; margin-left: 2px; }
+@keyframes blink { 0%, 50% { opacity: 1; } 51%, 100% { opacity: 0; } }
+.landing-features { max-width: 1200px; margin: 0 auto; padding: 40px 40px 80px; }
+.landing-features h2 { text-align: center; font-size: 28px; font-weight: 700; margin-bottom: 12px; }
+.landing-features .sub { text-align: center; color: var(--text-muted); font-size: 15px; margin-bottom: 48px; }
+.landing-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+.landing-card { background: var(--bg-panel); border: 1px solid var(--border); border-radius: 14px; padding: 28px; transition: border-color 0.2s, transform 0.2s; }
+.landing-card:hover { border-color: var(--border-accent); transform: translateY(-2px); }
+.landing-card .card-icon { font-size: 28px; margin-bottom: 14px; }
+.landing-card h3 { font-size: 16px; font-weight: 700; margin-bottom: 8px; }
+.landing-card p { font-size: 14px; color: var(--text-secondary); line-height: 1.6; }
+.landing-footer { text-align: center; padding: 30px; color: var(--text-muted); font-size: 12px; border-top: 1px solid var(--border); }
+@media (max-width: 768px) {
+  .landing-hero { grid-template-columns: 1fr; padding: 40px 20px; gap: 40px; }
+  .landing-hero h1 { font-size: 30px; }
+  .landing-grid { grid-template-columns: 1fr; }
+  .landing-features { padding: 20px 20px 60px; }
+}
+
+/* ====== STREAMING ====== */
+.streaming-cursor { display: inline-block; width: 7px; height: 15px; background: var(--accent); animation: blink 0.8s infinite; vertical-align: text-bottom; margin-left: 2px; border-radius: 1px; }
+.streaming-badge { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; color: var(--green); margin-left: 8px; }
+.streaming-badge .pulse-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); animation: pulse 1.2s infinite; }
+
+/* ====== VIDEO PREVIEW ====== */
+.preview-video-wrap { flex: 1; display: flex; align-items: center; justify-content: center; background: #000; overflow: auto; }
+.preview-video-wrap video { max-width: 100%; max-height: 100%; border-radius: 4px; }
+.preview-hyperframe-wrap { flex: 1; display: flex; flex-direction: column; background: var(--code-bg); }
+.hyperframe-toolbar { display: flex; align-items: center; gap: 8px; padding: 6px 12px; background: var(--bg-card); border-bottom: 1px solid var(--border); }
+.hyperframe-toolbar .hf-badge { font-size: 10px; font-weight: 700; color: var(--cyan); background: rgba(6,182,212,0.12); padding: 2px 8px; border-radius: 4px; letter-spacing: 0.5px; }
+.hyperframe-toolbar .hf-url { flex: 1; font-size: 11px; color: var(--text-muted); font-family: var(--mono); background: var(--bg-input); border: 1px solid var(--border); padding: 4px 8px; border-radius: var(--radius-sm); }
+.hyperframe-toolbar button { background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 14px; padding: 4px; }
+.hyperframe-toolbar button:hover { color: var(--text); }
+.hyperframe-body { flex: 1; }
+.hyperframe-body iframe { width: 100%; height: 100%; border: none; }
 </style>
 </head>
 <body>
@@ -412,8 +478,105 @@ function Toast({ message, onClose }) {
   return <div className="toast">{message}</div>;
 }
 
+/* ====== LANDING PAGE ====== */
+function LandingPage({ onLogin, onShowAuth }) {
+  const [demoStep, setDemoStep] = useState(0);
+  const demoLines = [
+    { type: 'prompt', text: '> 帮我写一个 React 计算器组件' },
+    { type: 'reply', text: '好的，我来创建一个完整的计算器组件。' },
+    { type: 'code', text: '$ mkdir calculator && cd calculator' },
+    { type: 'code', text: '$ writing src/Calculator.tsx ...' },
+    { type: 'reply', text: '已完成！包含基础运算、键盘支持和暗色主题。' },
+  ];
+
+  useEffect(() => {
+    if (demoStep < demoLines.length) {
+      const t = setTimeout(() => setDemoStep(s => s + 1), 800);
+      return () => clearTimeout(t);
+    }
+  }, [demoStep]);
+
+  return (
+    <div className="landing">
+      <nav className="landing-nav">
+        <div className="brand">{Icons.logo} Codex Lab</div>
+        <div className="nav-links">
+          <a href="/doc.html">文档</a>
+          <a href="https://github.com/alittlebitfun/codex-runtime-lab" target="_blank">GitHub</a>
+          <a className="primary" onClick={onShowAuth}>登录</a>
+        </div>
+      </nav>
+
+      <div className="landing-hero">
+        <div>
+          <h1>AI 编程沙盒，隔离执行，实时预览</h1>
+          <p className="lead">
+            每个对话独享沙盒环境，AI 生成的代码即时运行。支持 HTML 实时预览、3D 模型查看、视频播放，多个会话并发执行互不干扰。
+          </p>
+          <div className="cta-group">
+            <a className="cta-primary" onClick={onShowAuth}>开始使用</a>
+            <a className="cta-secondary" href="https://github.com/alittlebitfun/codex-runtime-lab" target="_blank">查看源码</a>
+          </div>
+        </div>
+        <div className="landing-demo">
+          <div className="landing-demo-bar"><span></span><span></span><span></span></div>
+          <div className="landing-demo-body">
+            {demoLines.slice(0, demoStep).map((line, i) => (
+              <div key={i} className={`demo-line demo-${line.type}`}>
+                {line.type === 'prompt' ? '👤 ' : line.type === 'code' ? '⚡ ' : '🤖 '}{line.text}
+              </div>
+            ))}
+            {demoStep < demoLines.length && <span className="demo-cursor"></span>}
+          </div>
+        </div>
+      </div>
+
+      <div className="landing-features">
+        <h2>为 AI 编程而生的工作台</h2>
+        <p className="sub">隔离、并发、可视化 —— 解决 AI 代码生成的核心痛点</p>
+        <div className="landing-grid">
+          <div className="landing-card">
+            <div className="card-icon">🔒</div>
+            <h3>沙盒隔离</h3>
+            <p>每个会话独享工作目录，AI 执行的命令、生成的文件完全隔离，不会互相干扰。安全可控的执行环境。</p>
+          </div>
+          <div className="landing-card">
+            <div className="card-icon">⚡</div>
+            <h3>并发执行</h3>
+            <p>多个会话可并行运行 AI 任务，实时查看并发占用情况。拖拽排序、置顶收藏，高效管理你的会话。</p>
+          </div>
+          <div className="landing-card">
+            <div className="card-icon">👁️</div>
+            <h3>实时预览</h3>
+            <p>HTML 文件即时渲染为页面，图片直接显示，3D 模型用 Three.js 查看，视频在线播放。所见即所得。</p>
+          </div>
+          <div className="landing-card">
+            <div className="card-icon">📡</div>
+            <h3>流式输出</h3>
+            <p>AI 回复实时流式展示，逐字呈现思考过程。命令执行状态同步更新，不再需要等待完成。</p>
+          </div>
+          <div className="landing-card">
+            <div className="card-icon">📁</div>
+            <h3>文件管理</h3>
+            <p>上传文件到沙盒供 AI 读取，支持拖拽上传、@引用。文件列表/网格双视图，代码查看与预览切换。</p>
+          </div>
+          <div className="landing-card">
+            <div className="card-icon">🎨</div>
+            <h3>Hyperframe</h3>
+            <p>支持 Hyperframe 格式的交互式内容，AI 生成的动态页面可直接在增强沙盒中全屏预览和交互。</p>
+          </div>
+        </div>
+      </div>
+
+      <div className="landing-footer">
+        Codex Lab — Open Source AI Coding Sandbox
+      </div>
+    </div>
+  );
+}
+
 /* ====== AUTH PAGE ====== */
-function AuthPage({ onLogin }) {
+function AuthPage({ onLogin, onBack }) {
   const [mode, setMode] = useState('login'); // login | register
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -440,6 +603,7 @@ function AuthPage({ onLogin }) {
   return (
     <div className="auth-page">
       <form className="auth-card" onSubmit={handleSubmit}>
+        {onBack && <button type="button" onClick={onBack} style={{background:'none',border:'none',color:'var(--text-muted)',cursor:'pointer',fontSize:'18px',marginBottom:'12px',padding:'4px'}}>← 返回</button>}
         <h1>{mode === 'login' ? '欢迎回来' : '创建账号'}</h1>
         <p className="subtitle">{mode === 'login' ? '登录 Codex Lab 继续使用' : '注册以开始使用 Codex Lab'}</p>
 
@@ -755,6 +919,9 @@ function MainApp({ user, onLogout }) {
   const [draggingSessionId, setDraggingSessionId] = useState(null);
   const [renamingCollectionId, setRenamingCollectionId] = useState(null);
   const [collectionRenameValue, setCollectionRenameValue] = useState('');
+  const [streamingContent, setStreamingContent] = useState('');
+  const [isStreaming, setIsStreaming] = useState(false);
+  const streamSourceRef = useRef(null);
   const dragRef = useRef({ isDragging: false, draggedId: null });
   const suppressPollRef = useRef(false);
   const initialLoadRef = useRef(true);
@@ -763,14 +930,17 @@ function MainApp({ user, onLogout }) {
 
   // File type detection
   const IMAGE_EXT = /\.(png|jpe?g|gif|webp|svg|bmp|ico)$/i;
+  const VIDEO_EXT = /\.(mp4|webm|ogg|mov|avi|mkv|m4v)$/i;
   const TEXT_EXT = /\.(txt|md|markdown|log|csv|json|yaml|yml|toml|xml|ini|cfg|conf|env|sh|bat|py|js|ts|jsx|tsx|html|htm|css|scss|sql|go|rs|java|c|cpp|h|hpp|rb|php|swift|kt)$/i;
   const getFileDisplayName = (item) => item?.displayName || item?.name || '';
   const isImage = (name) => IMAGE_EXT.test(name || '');
+  const isVideo = (name) => VIDEO_EXT.test(name || '');
   const isText = (name) => TEXT_EXT.test(name || '');
   const isHtml = (name) => /\.(html|htm)$/i.test(name || '');
+  const isHyperframe = (name) => /\.hf\.html$/i.test(name || '') || /\.hyperframe$/i.test(name || '');
   const MODEL_3D_EXT = /\.(stl|obj|gltf|glb|ply)$/i;
   const is3D = (name) => MODEL_3D_EXT.test(name || '');
-  const isPreviewable = (name) => isImage(name) || isText(name) || isHtml(name) || is3D(name);
+  const isPreviewable = (name) => isImage(name) || isText(name) || isHtml(name) || is3D(name) || isVideo(name) || isHyperframe(name);
 
   const chatEndRef = useRef(null);
   const chatContainerRef = useRef(null);
@@ -863,6 +1033,96 @@ function MainApp({ user, onLogout }) {
   }, [activeId]);
 
   const showToast = (msg) => setToast(msg);
+
+  // ── SSE Streaming ──
+  function connectStream(sid) {
+    if (streamSourceRef.current) {
+      streamSourceRef.current.close();
+      streamSourceRef.current = null;
+    }
+    setStreamingContent('');
+    setIsStreaming(true);
+
+    const url = `/api/sessions/${sid}/stream`;
+    const headers = authToken ? { Authorization: `Bearer ${authToken}` } : {};
+    // Use fetch-based SSE since EventSource doesn't support custom headers
+    let cancelled = false;
+    const reader = (async () => {
+      try {
+        const resp = await fetch(url, { headers });
+        if (!resp.ok || !resp.body) { setIsStreaming(false); return; }
+        const reader = resp.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+        while (!cancelled) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n');
+          buffer = lines.pop() || '';
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              try {
+                const evt = JSON.parse(line.slice(6));
+                if (evt.type === 'text') {
+                  setStreamingContent(prev => prev + evt.content + '\n\n');
+                } else if (evt.type === 'command') {
+                  const status = evt.status === 'completed' ? '✓' : evt.status === 'failed' ? '✗' : '?';
+                  setStreamingContent(prev => prev + `\n\`\`\`\n$ ${evt.command}\n[${status}] exit ${evt.exitCode ?? '?'}${evt.output ? '\n' + evt.output.slice(0, 400) : ''}\n\`\`\`\n\n`);
+                } else if (evt.type === 'done') {
+                  setIsStreaming(false);
+                  cancelled = true;
+                } else if (evt.type === 'error') {
+                  setStreamingContent(prev => prev + `\n错误: ${evt.message}\n`);
+                  setIsStreaming(false);
+                  cancelled = true;
+                }
+              } catch {}
+            }
+          }
+        }
+      } catch {
+        // Stream error or disconnected
+      }
+      setIsStreaming(false);
+      // Refresh to get persisted messages
+      if (sid === activeId) {
+        setTimeout(() => pollSession(sid, false), 500);
+      }
+    })();
+
+    streamSourceRef.current = { close: () => { cancelled = true; } };
+  }
+
+  function disconnectStream() {
+    if (streamSourceRef.current) {
+      streamSourceRef.current.close();
+      streamSourceRef.current = null;
+    }
+    setIsStreaming(false);
+    setStreamingContent('');
+  }
+
+  // Connect stream when active session is processing
+  useEffect(() => {
+    if (activeId && isProcessing && !streamSourceRef.current) {
+      connectStream(activeId);
+    }
+    if (!isProcessing && streamSourceRef.current) {
+      disconnectStream();
+    }
+    return () => {};
+  }, [activeId, isProcessing]);
+
+  // Cleanup stream on session change
+  useEffect(() => {
+    return () => {
+      if (streamSourceRef.current) {
+        streamSourceRef.current.close();
+        streamSourceRef.current = null;
+      }
+    };
+  }, []);
 
   function resolveSessionFromList(list, options = {}) {
     const requestedID = getSessionIdFromUrl();
@@ -990,6 +1250,7 @@ function MainApp({ user, onLogout }) {
     setActiveId(sid);
     setSessionIdToUrl(sid);
     setSelectedFile(null); setFileContent(''); setPreviewPath('');
+    disconnectStream();
     const s = sessions.find(x => x.id === sid);
     if (s?.model) setCurrentModel(s.model);
   }
@@ -1222,6 +1483,10 @@ function MainApp({ user, onLogout }) {
         }),
       });
       setInputValue('');
+      // Start streaming connection immediately
+      setStreamingContent('');
+      setIsStreaming(true);
+      connectStream(activeId);
       setTimeout(() => pollSession(activeId, false), 300);
     } catch (e) { showToast(e.message); }
     setSending(false);
@@ -1289,6 +1554,16 @@ function MainApp({ user, onLogout }) {
     try {
       if (isImage(displayName)) {
         // Images -> preview tab (show directly)
+        setPreviewPath(item.path);
+        setFileContent('');
+        setRightTab('preview');
+      } else if (isVideo(displayName)) {
+        // Videos -> preview tab (HTML5 video player)
+        setPreviewPath(item.path);
+        setFileContent('');
+        setRightTab('preview');
+      } else if (isHyperframe(displayName)) {
+        // Hyperframe -> preview tab (enhanced iframe)
         setPreviewPath(item.path);
         setFileContent('');
         setRightTab('preview');
@@ -1586,6 +1861,32 @@ function MainApp({ user, onLogout }) {
                 {messages.filter(m => m.role !== 'system').map((msg, i) => (
                   <ChatMessage key={msg.id || i} msg={msg} />
                 ))}
+                {isStreaming && streamingContent && (
+                  <div className="message assistant">
+                    <div className="avatar">C</div>
+                    <div className="bubble">
+                      <div className="bubble-header">
+                        Codex
+                        <span className="streaming-badge"><span className="pulse-dot"></span> 生成中</span>
+                      </div>
+                      <div className="bubble-content" dangerouslySetInnerHTML={{ __html: renderMd(streamingContent) + '<span class="streaming-cursor"></span>' }}></div>
+                    </div>
+                  </div>
+                )}
+                {isStreaming && !streamingContent && (
+                  <div className="message assistant">
+                    <div className="avatar">C</div>
+                    <div className="bubble">
+                      <div className="bubble-header">
+                        Codex
+                        <span className="streaming-badge"><span className="pulse-dot"></span> 思考中</span>
+                      </div>
+                      <div className="bubble-content" style={{color:'var(--text-muted)',fontSize:'13px'}}>
+                        <span className="streaming-cursor"></span>
+                      </div>
+                    </div>
+                  </div>
+                )}
                 <div ref={chatEndRef}></div>
                 {userScrolledUp && (
                   <button className="scroll-bottom-btn" onClick={scrollToBottom}>
@@ -1741,7 +2042,7 @@ function MainApp({ user, onLogout }) {
                           <button className="ref-btn" onClick={(e) => { e.stopPropagation(); referenceFile(item); }} title="引用到输入框">@</button>
                           <div className="grid-thumb">
                             {imgSrc ? <img src={imgSrc} alt={displayName} /> : (
-                              <span>{is3D(displayName) ? '🧊' : isHtml(displayName) ? '🌐' : isText(displayName) ? '📄' : '📦'}</span>
+                              <span>{isHyperframe(displayName) ? '🎨' : isVideo(displayName) ? '🎬' : is3D(displayName) ? '🧊' : isHtml(displayName) ? '🌐' : isText(displayName) ? '📄' : '📦'}</span>
                             )}
                           </div>
                           <span className="grid-name" title={displayName}>{displayName}</span>
@@ -1783,15 +2084,30 @@ function MainApp({ user, onLogout }) {
                 {previewPath && activeId ? (
                   <>
                     <div className="preview-toolbar">
-                      <span style={{color:'var(--green)',fontSize:'11px'}}>{is3D(selectedFileDisplayName) ? '3D' : isHtml(selectedFileDisplayName) ? 'LIVE' : isImage(selectedFileDisplayName) ? 'IMG' : 'TEXT'}</span>
+                      <span style={{color:'var(--green)',fontSize:'11px'}}>{isHyperframe(selectedFileDisplayName) ? 'HF' : isVideo(selectedFileDisplayName) ? 'VIDEO' : is3D(selectedFileDisplayName) ? '3D' : isHtml(selectedFileDisplayName) ? 'LIVE' : isImage(selectedFileDisplayName) ? 'IMG' : 'TEXT'}</span>
                       <span className="url-bar">{previewPath}</span>
-                      {!isImage(selectedFileDisplayName) && !is3D(selectedFileDisplayName) && isText(selectedFileDisplayName) && (
+                      {!isImage(selectedFileDisplayName) && !is3D(selectedFileDisplayName) && !isVideo(selectedFileDisplayName) && !isHyperframe(selectedFileDisplayName) && isText(selectedFileDisplayName) && (
                         <button className="send-btn secondary" style={{padding:'4px 8px',fontSize:'11px'}} onClick={() => setRightTab('code')}>
                           {'</>'} 代码
                         </button>
                       )}
                     </div>
-                    {isImage(selectedFileDisplayName) ? (
+                    {isHyperframe(selectedFileDisplayName) ? (
+                      <div className="preview-hyperframe-wrap">
+                        <div className="hyperframe-toolbar">
+                          <span className="hf-badge">HYPERFRAME</span>
+                          <span className="hf-url">{previewPath}</span>
+                          <button onClick={() => window.open(previewSrc, '_blank')} title="在新窗口打开">↗</button>
+                        </div>
+                        <div className="hyperframe-body">
+                          <iframe src={previewSrc} title="Hyperframe" sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals allow-presentation allow-downloads"></iframe>
+                        </div>
+                      </div>
+                    ) : isVideo(selectedFileDisplayName) ? (
+                      <div className="preview-video-wrap">
+                        <video src={previewSrc} controls autoPlay loop></video>
+                      </div>
+                    ) : isImage(selectedFileDisplayName) ? (
                       <div className="preview-image-wrap">
                         <img src={previewSrc} alt={selectedFileDisplayName} />
                       </div>
@@ -1828,6 +2144,7 @@ function MainApp({ user, onLogout }) {
 function RootApp() {
   const [user, setUser] = useState(null);
   const [checking, setChecking] = useState(true);
+  const [showAuth, setShowAuth] = useState(false);
 
   useEffect(() => {
     if (authToken) {
@@ -1848,7 +2165,10 @@ function RootApp() {
   }
 
   if (!user) {
-    return <AuthPage onLogin={(u) => setUser(u)} />;
+    if (showAuth) {
+      return <AuthPage onLogin={(u) => setUser(u)} onBack={() => setShowAuth(false)} />;
+    }
+    return <LandingPage onLogin={(u) => setUser(u)} onShowAuth={() => setShowAuth(true)} />;
   }
 
   return <MainApp user={user} onLogout={() => { setAuth(''); setUser(null); }} />;

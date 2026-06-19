@@ -80,7 +80,17 @@ if (!fs.existsSync(WORKSPACE_ROOT)) fs.mkdirSync(WORKSPACE_ROOT, { recursive: tr
 // ── In-memory state ──
 // session processors keyed by session_id — tracks active Codex CLI processes
 const sessionProcessors = new Map(); // sessionId -> { isProcessing, taskQueue, activeProcessor }
+const sessionStreamSubscribers = new Map(); // sessionId -> Set of callback functions
 let activeSessionCount = 0;
+
+function emitStreamEvent(sessionId, event) {
+  const subs = sessionStreamSubscribers.get(sessionId);
+  if (subs) {
+    for (const cb of subs) {
+      try { cb(event); } catch {}
+    }
+  }
+}
 
 function now() { return new Date().toISOString(); }
 function makeId() { return crypto.randomUUID(); }
@@ -247,7 +257,7 @@ async function spawnWithRetry(cmd, args, options) {
 }
 
 // ── Call Codex CLI (uses native thread/resume for multi-turn) ──
-function callCodexCLI(sandboxDir, model, threadId, userMessage, imagePaths) {
+function callCodexCLI(sandboxDir, model, threadId, userMessage, imagePaths, onStreamEvent) {
   return new Promise(async (resolve, reject) => {
     const bin = await detectCodexBin();
     const codexHome = await ensureCodexRuntimeHome();
@@ -311,7 +321,23 @@ function callCodexCLI(sandboxDir, model, threadId, userMessage, imagePaths) {
       for (const line of lines) {
         const trimmed = line.trim();
         if (!trimmed) continue;
-        try { events.push(JSON.parse(trimmed)); } catch {}
+        try {
+          const evt = JSON.parse(trimmed);
+          events.push(evt);
+          // Emit streaming events in real-time
+          if (onStreamEvent) {
+            if (evt.type === 'item.completed' && evt.item) {
+              const item = evt.item;
+              if (item.type === 'agent_message' && item.text) {
+                onStreamEvent({ type: 'text', content: item.text });
+              } else if (item.type === 'command_execution') {
+                onStreamEvent({ type: 'command', command: item.command, status: item.status, exitCode: item.exit_code, output: (item.aggregated_output || '').slice(0, 2000) });
+              }
+            } else if (evt.type === 'thread.started') {
+              onStreamEvent({ type: 'thread_started', threadId: evt.thread_id || evt.item?.id || evt.id });
+            }
+          }
+        } catch {}
       }
     });
 
@@ -445,10 +471,11 @@ function runSessionQueue(sessionId) {
           const threadId = sessRows[0]?.thread_id || null;
           const dir = sessRows[0]?.sandbox_dir || sessionDir(sessionId);
 
-          const reply = await callCodexCLI(dir, model, threadId, task.input, task.imagePaths || null);
+          const reply = await callCodexCLI(dir, model, threadId, task.input, task.imagePaths || null, (evt) => emitStreamEvent(sessionId, evt));
 
           task.result = { text: reply.content, usage: reply.usage };
           task.status = 'done';
+          emitStreamEvent(sessionId, { type: 'done', content: reply.content, usage: reply.usage });
 
           // Save thread_id on first call (so subsequent calls use resume)
           if (reply.threadId && !threadId) {
@@ -471,6 +498,7 @@ function runSessionQueue(sessionId) {
         } catch (error) {
           task.status = 'error';
           task.result = { error: error.message };
+          emitStreamEvent(sessionId, { type: 'error', message: error.message });
           await pool.query(
             `INSERT INTO messages (session_id, role, content, metadata) VALUES ($1, 'assistant', $2, $3)`,
             [sessionId, `执行失败：${error.message}`, JSON.stringify({ error: true })]
@@ -906,6 +934,57 @@ app.post('/api/sessions/:id/messages', async (req, res) => {
   }
 });
 
+// SSE stream endpoint for real-time output
+app.get('/api/sessions/:id/stream', async (req, res) => {
+  try {
+    // Verify ownership
+    const { rows } = await pool.query(
+      `SELECT id FROM sessions WHERE id = $1 AND user_id = $2`,
+      [req.params.id, req.user.id]
+    );
+    if (rows.length === 0) return res.status(404).json({ error: '会话不存在' });
+
+    const sessionId = req.params.id;
+
+    // Set SSE headers
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.setHeader('X-Accel-Buffering', 'no');
+    res.flushHeaders();
+
+    // Send initial connection event
+    const proc = getProcessor(sessionId);
+    res.write(`data: ${JSON.stringify({ type: 'connected', isProcessing: proc.isProcessing, queueLength: proc.taskQueue.length })}\n\n`);
+
+    // Register subscriber
+    if (!sessionStreamSubscribers.has(sessionId)) {
+      sessionStreamSubscribers.set(sessionId, new Set());
+    }
+    const subscriber = (event) => {
+      try { res.write(`data: ${JSON.stringify(event)}\n\n`); } catch {}
+    };
+    sessionStreamSubscribers.get(sessionId).add(subscriber);
+
+    // Heartbeat every 15s
+    const heartbeat = setInterval(() => {
+      try { res.write(': heartbeat\n\n'); } catch {}
+    }, 15000);
+
+    // Cleanup on close
+    req.on('close', () => {
+      clearInterval(heartbeat);
+      const subs = sessionStreamSubscribers.get(sessionId);
+      if (subs) {
+        subs.delete(subscriber);
+        if (subs.size === 0) sessionStreamSubscribers.delete(sessionId);
+      }
+    });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // List files in sandbox
 app.get('/api/sessions/:id/files', async (req, res) => {
   try {
@@ -1004,6 +1083,17 @@ const MIME_3D = {
   '.ply': 'application/octet-stream',
 };
 
+// MIME types for video formats
+const MIME_VIDEO = {
+  '.mp4': 'video/mp4',
+  '.webm': 'video/webm',
+  '.ogg': 'video/ogg',
+  '.mov': 'video/quicktime',
+  '.avi': 'video/x-msvideo',
+  '.mkv': 'video/x-matroska',
+  '.m4v': 'video/mp4',
+};
+
 // Preview file (raw serve for iframe)
 app.get('/api/sessions/:id/preview', async (req, res) => {
   try {
@@ -1025,6 +1115,9 @@ app.get('/api/sessions/:id/preview', async (req, res) => {
     const ext = path.extname(target).toLowerCase();
     if (MIME_3D[ext]) {
       res.setHeader('Content-Type', MIME_3D[ext]);
+    } else if (MIME_VIDEO[ext]) {
+      res.setHeader('Content-Type', MIME_VIDEO[ext]);
+      res.setHeader('Accept-Ranges', 'bytes');
     }
     res.sendFile(target);
   } catch (e) {
