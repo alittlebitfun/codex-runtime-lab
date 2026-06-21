@@ -410,6 +410,23 @@ code.inline { background: var(--bg-card); padding: 2px 6px; border-radius: 4px; 
 .mode-tab.active { background: var(--bg-card); color: var(--text); box-shadow: 0 1px 2px rgba(0,0,0,0.3); }
 .mode-tab svg { width: 13px; height: 13px; opacity: 0.7; }
 .mode-tab.active svg { opacity: 1; }
+
+/* ====== QUEUE PANEL ====== */
+.queue-panel { margin: 0 16px 8px; border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; background: var(--bg-panel); }
+.queue-header { display: flex; align-items: center; gap: 6px; padding: 8px 12px; background: var(--bg-card); cursor: pointer; user-select: none; font-size: 12px; font-weight: 600; color: var(--text-secondary); border-bottom: 1px solid var(--border); }
+.queue-header:hover { background: var(--bg-hover); }
+.queue-header .chevron { font-size: 10px; transition: transform 0.15s; }
+.queue-header .chevron.open { transform: rotate(180deg); }
+.queue-header .count { background: var(--accent); color: white; font-size: 10px; padding: 1px 7px; border-radius: 10px; font-weight: 700; }
+.queue-list { max-height: 180px; overflow-y: auto; }
+.queue-item { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-bottom: 1px solid var(--border); font-size: 13px; color: var(--text); background: rgba(34,197,94,0.04); }
+.queue-item:last-child { border-bottom: none; }
+.queue-item .q-text { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.queue-item .q-actions { display: flex; gap: 2px; }
+.queue-item .q-btn { background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 2px 5px; border-radius: 3px; font-size: 14px; line-height: 1; }
+.queue-item .q-btn:hover { color: var(--text); background: var(--bg-hover); }
+.add-to-queue-btn { display: flex; align-items: center; justify-content: center; gap: 6px; margin: 8px 16px; padding: 8px; background: var(--bg-card); border: 1px dashed var(--border-accent); border-radius: var(--radius); cursor: pointer; font-size: 12px; color: var(--text-muted); transition: all 0.15s; }
+.add-to-queue-btn:hover { color: var(--text); border-color: var(--accent); background: rgba(59,130,246,0.04); }
 .guide-prompt { display: flex; align-items: center; gap: 8px; padding: 8px 14px; margin: 0 16px 8px; background: rgba(59,130,246,0.06); border: 1px solid rgba(59,130,246,0.15); border-radius: var(--radius); animation: fadeIn 0.3s ease; }
 .guide-prompt .guide-text { flex: 1; font-size: 12px; color: var(--text-secondary); }
 .guide-prompt .guide-badge { font-size: 10px; color: var(--green); font-weight: 600; display: flex; align-items: center; gap: 4px; }
@@ -965,6 +982,8 @@ function MainApp({ user, onLogout }) {
   const [isStreaming, setIsStreaming] = useState(false);
   const streamSourceRef = useRef(null);
   const [sendMode, setSendMode] = useState('guide'); // 'queue' | 'guide'
+  const [localQueue, setLocalQueue] = useState([]); // { id, text, attachments }
+  const [queueOpen, setQueueOpen] = useState(true);
   const dragRef = useRef({ isDragging: false, draggedId: null });
   const suppressPollRef = useRef(false);
   const initialLoadRef = useRef(true);
@@ -1534,6 +1553,35 @@ function MainApp({ user, onLogout }) {
     setSending(false);
   }
 
+  // ── Local Queue Management ──
+  function addToQueue() {
+    const text = inputValue.trim();
+    if (!text && pendingUploads.length === 0) return;
+    setLocalQueue(prev => [...prev, {
+      id: crypto.randomUUID(),
+      text: text || `📎 ${pendingUploads.map(f => f.name).join(', ')}`,
+      attachments: [...pendingUploads],
+    }]);
+    setInputValue('');
+    setPendingUploads([]);
+  }
+
+  function removeFromQueue(queueId) {
+    setLocalQueue(prev => prev.filter(q => q.id !== queueId));
+  }
+
+  function moveQueueItem(queueId, direction) {
+    setLocalQueue(prev => {
+      const idx = prev.findIndex(q => q.id === queueId);
+      if (idx < 0) return prev;
+      const newIdx = idx + direction;
+      if (newIdx < 0 || newIdx >= prev.length) return prev;
+      const copy = [...prev];
+      [copy[idx], copy[newIdx]] = [copy[newIdx], copy[idx]];
+      return copy;
+    });
+  }
+
   // Stage files into the chat input as pending (for sending with message)
   function stageUploads(fileList) {
     if (!fileList || fileList.length === 0) return;
@@ -1944,6 +1992,37 @@ function MainApp({ user, onLogout }) {
                   <span className="guide-badge"><span className="check">✓</span> 回复完成</span>
                   <span className="guide-text">可以继续输入下一条消息</span>
                 </div>
+              )}
+
+              {localQueue.length > 0 && (
+                <div className="queue-panel">
+                  <div className="queue-header" onClick={() => setQueueOpen(v => !v)}>
+                    <span className={`chevron ${queueOpen ? 'open' : ''}`}>▼</span>
+                    {localQueue.length} 个队列任务
+                    <span className="count">{localQueue.length}</span>
+                  </div>
+                  {queueOpen && (
+                    <div className="queue-list">
+                      {localQueue.map((q, i) => (
+                        <div className="queue-item" key={q.id}>
+                          <span className="q-text">{q.text}</span>
+                          <div className="q-actions">
+                            <button className="q-btn" onClick={() => moveQueueItem(q.id, -1)} title="上移" disabled={i === 0}>↑</button>
+                            <button className="q-btn" onClick={() => moveQueueItem(q.id, 1)} title="下移" disabled={i === localQueue.length - 1}>↓</button>
+                            <button className="q-btn" onClick={() => removeFromQueue(q.id)} title="移除">×</button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {sendMode === 'queue' && isProcessing && (
+                <button className="add-to-queue-btn" onClick={addToQueue}>
+                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 1v12M1 7h12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
+                  添加到队列
+                </button>
               )}
 
               <div className="chat-input-area">
