@@ -1066,9 +1066,6 @@ function MainApp({ user, onLogout }) {
                 const evt = JSON.parse(line.slice(6));
                 if (evt.type === 'text') {
                   setStreamingContent(prev => prev + evt.content + '\n\n');
-                } else if (evt.type === 'command') {
-                  const status = evt.status === 'completed' ? '✓' : evt.status === 'failed' ? '✗' : '?';
-                  setStreamingContent(prev => prev + `\n\`\`\`\n$ ${evt.command}\n[${status}] exit ${evt.exitCode ?? '?'}${evt.output ? '\n' + evt.output.slice(0, 400) : ''}\n\`\`\`\n\n`);
                 } else if (evt.type === 'done') {
                   setIsStreaming(false);
                   cancelled = true;

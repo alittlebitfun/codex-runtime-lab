@@ -331,8 +331,6 @@ function callCodexCLI(sandboxDir, model, threadId, userMessage, imagePaths, onSt
               const item = evt.item;
               if (item.type === 'agent_message' && item.text) {
                 onStreamEvent({ type: 'text', content: item.text });
-              } else if (item.type === 'command_execution') {
-                onStreamEvent({ type: 'command', command: item.command, status: item.status, exitCode: item.exit_code, output: (item.aggregated_output || '').slice(0, 2000) });
               }
             } else if (evt.type === 'thread.started') {
               onStreamEvent({ type: 'thread_started', threadId: evt.thread_id || evt.item?.id || evt.id });
@@ -387,13 +385,6 @@ function callCodexCLI(sandboxDir, model, threadId, userMessage, imagePaths, onSt
 
       const parts = [];
       for (const msg of agentMessages) parts.push(msg);
-      if (commands.length > 0) {
-        const cmdSummary = commands.map(c => {
-          const status = c.status === 'completed' ? '✓' : c.status === 'failed' ? '✗' : '?';
-          return `\`\`\`\n$ ${c.command.replace(/^"[^"]*"\s*/, '').slice(0, 200)}\n[${status}] exit ${c.exitCode ?? '?'}${c.output ? '\n' + c.output.slice(0, 800) : ''}\n\`\`\``;
-        });
-        parts.push('**沙箱执行记录：**\n' + cmdSummary.join('\n'));
-      }
 
       const content = parts.join('\n\n') || (hasError ? `错误: ${errorMsg}` : '(无响应)');
 
