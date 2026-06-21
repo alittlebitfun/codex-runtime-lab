@@ -384,6 +384,19 @@ code.inline { background: var(--bg-card); padding: 2px 6px; border-radius: 4px; 
 .hyperframe-toolbar button:hover { color: var(--text); }
 .hyperframe-body { flex: 1; }
 .hyperframe-body iframe { width: 100%; height: 100%; border: none; }
+
+/* ====== SEND MODE TOGGLE ====== */
+.mode-toggle { display: inline-flex; align-items: center; background: var(--bg-input); border: 1px solid var(--border); border-radius: 20px; padding: 2px; cursor: pointer; user-select: none; transition: border-color 0.15s; }
+.mode-toggle:hover { border-color: var(--border-accent); }
+.mode-toggle .mode-opt { font-size: 11px; padding: 3px 10px; border-radius: 16px; color: var(--text-muted); transition: all 0.15s; white-space: nowrap; }
+.mode-toggle .mode-opt.active { background: var(--accent); color: white; }
+.mode-toggle .mode-opt:not(.active):hover { color: var(--text-secondary); }
+.guide-prompt { display: flex; align-items: center; gap: 8px; padding: 8px 14px; margin: 0 16px 8px; background: rgba(59,130,246,0.06); border: 1px solid rgba(59,130,246,0.15); border-radius: var(--radius); animation: fadeIn 0.3s ease; }
+.guide-prompt .guide-text { flex: 1; font-size: 12px; color: var(--text-secondary); }
+.guide-prompt .guide-badge { font-size: 10px; color: var(--green); font-weight: 600; display: flex; align-items: center; gap: 4px; }
+.guide-prompt .guide-badge .check { width: 14px; height: 14px; border-radius: 50%; background: var(--green); display: flex; align-items: center; justify-content: center; color: white; font-size: 10px; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+.input-disabled { opacity: 0.4; pointer-events: none; }
 </style>
 </head>
 <body>
@@ -922,6 +935,7 @@ function MainApp({ user, onLogout }) {
   const [streamingContent, setStreamingContent] = useState('');
   const [isStreaming, setIsStreaming] = useState(false);
   const streamSourceRef = useRef(null);
+  const [sendMode, setSendMode] = useState('guide'); // 'queue' | 'guide'
   const dragRef = useRef({ isDragging: false, draggedId: null });
   const suppressPollRef = useRef(false);
   const initialLoadRef = useRef(true);
@@ -1457,6 +1471,8 @@ function MainApp({ user, onLogout }) {
     const text = inputValue.trim();
     const hasFiles = pendingUploads.length > 0;
     if (!text && !hasFiles) return;
+    // Guide mode: block sending while AI is processing
+    if (sendMode === 'guide' && (isProcessing || isStreaming)) return;
 
     setSending(true);
     try {
@@ -1892,6 +1908,13 @@ function MainApp({ user, onLogout }) {
                 )}
               </div>
 
+              {sendMode === 'guide' && !isProcessing && !isStreaming && messages.length > 0 && messages[messages.length - 1]?.role === 'assistant' && (
+                <div className="guide-prompt">
+                  <span className="guide-badge"><span className="check">✓</span> 回复完成</span>
+                  <span className="guide-text">可以继续输入下一条消息</span>
+                </div>
+              )}
+
               <div className="chat-input-area">
                 <div
                   className="chat-input-wrap"
@@ -1920,7 +1943,16 @@ function MainApp({ user, onLogout }) {
                     value={inputValue}
                     onChange={e => setInputValue(e.target.value)}
                     onKeyDown={handleKeyDown}
-                    placeholder={pendingUploads.length > 0 ? "添加说明后发送，或直接发送文件... Enter 发送" : "输入消息... Enter 发送，Shift+Enter 换行。拖拽文件到此处。"}
+                    disabled={sendMode === 'guide' && (isProcessing || isStreaming)}
+                    placeholder={
+                      sendMode === 'guide' && (isProcessing || isStreaming)
+                        ? '等待回复完成后再输入…'
+                        : pendingUploads.length > 0
+                          ? '添加说明后发送，或直接发送文件... Enter 发送'
+                          : sendMode === 'guide'
+                            ? '引导模式 · 输入消息... Enter 发送，Shift+Enter 换行'
+                            : '队列模式 · 输入消息... Enter 发送，Shift+Enter 换行。拖拽文件到此处。'
+                    }
                     rows={1}
                   />
                   <div className="chat-input-toolbar">
@@ -1940,12 +1972,17 @@ function MainApp({ user, onLogout }) {
                           {MODEL_OPTIONS.map(m => <option key={m} value={m}>{m}</option>)}
                         </select>
                       </div>
+                      <div className="mode-toggle" title={sendMode === 'queue' ? '队列模式：可连续发送，排队执行' : '引导模式：等回复完再发下一条'}>
+                        <span className={`mode-opt ${sendMode === 'guide' ? 'active' : ''}`} onClick={() => setSendMode('guide')}>引导</span>
+                        <span className={`mode-opt ${sendMode === 'queue' ? 'active' : ''}`} onClick={() => setSendMode('queue')}>队列</span>
+                      </div>
                       <span className="hints" style={{marginLeft:'auto'}}>
-                        {isProcessing ? '正在处理中..' : ''}
+                        {sendMode === 'queue' && isProcessing ? `队列执行中 (${activeSession?.queueLength || 0} 排队)` : ''}
+                        {sendMode === 'guide' && isProcessing ? '等待回复中…' : ''}
                         {pendingUploads.length > 0 ? `${pendingUploads.length} 个文件待发送` : ''}
                       </span>
                     </div>
-                    <button className="send-circle" onClick={sendMessage} disabled={(!inputValue.trim() && pendingUploads.length === 0) || sending} title="发送">
+                    <button className="send-circle" onClick={sendMessage} disabled={(!inputValue.trim() && pendingUploads.length === 0) || sending || (sendMode === 'guide' && (isProcessing || isStreaming))} title={sendMode === 'guide' && (isProcessing || isStreaming) ? '等待当前回复完成' : '发送'}>
                       <svg viewBox="0 0 16 16" fill="none"><path d="M8 12V3M4 7l4-4 4 4" stroke="#09090b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
                     </button>
                   </div>
