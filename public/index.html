@@ -1183,6 +1183,44 @@ function MainApp({ user, onLogout }) {
     };
   }, []);
 
+  // Auto-dequeue: send next queued item when AI becomes idle
+  const dequeuingRef = useRef(false);
+  useEffect(() => {
+    if (isProcessing || isStreaming || localQueue.length === 0 || !activeId || dequeuingRef.current) return;
+    dequeuingRef.current = true;
+    const next = localQueue[0];
+    setLocalQueue(prev => prev.slice(1));
+
+    (async () => {
+      try {
+        let attachments = [];
+        if (next.attachments && next.attachments.length > 0) {
+          const formData = new FormData();
+          for (const pu of next.attachments) formData.append('files', pu.file);
+          const result = await apiUpload(`/api/sessions/${activeId}/upload`, formData);
+          attachments = result.uploaded || [];
+        }
+        await api(`/api/sessions/${activeId}/messages`, {
+          method: 'POST',
+          body: JSON.stringify({
+            content: next.text,
+            model: currentModel,
+            attachments: attachments.length > 0 ? attachments : undefined,
+          }),
+        });
+        setStreamingContent('');
+        setIsStreaming(true);
+        connectStream(activeId);
+        setTimeout(() => pollSession(activeId, false), 300);
+      } catch (e) {
+        showToast(`队列发送失败: ${e.message}`);
+      }
+    })();
+
+    // Allow next dequeue after a brief delay
+    setTimeout(() => { dequeuingRef.current = false; }, 500);
+  }, [isProcessing, isStreaming, localQueue, activeId]);
+
   function resolveSessionFromList(list, options = {}) {
     const requestedID = getSessionIdFromUrl();
     const hasRequested = requestedID && list.some((s) => s.id === requestedID);
